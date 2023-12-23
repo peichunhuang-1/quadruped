@@ -1,0 +1,6 @@
+include_directories(${CMAKE_CURRENT_LIST_DIR})
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/cpg)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/imu)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/kinematic)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/fsm)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/estimation)

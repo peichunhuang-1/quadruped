@@ -1,0 +1,172 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Helvetica, "PingFang SC", "Microsoft Yahei", sans-serif;
+}
+
+main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #1d3144;
+}
+
+.Control-Panel {
+  display: flex;
+  flex-direction: column;
+  width: 30%;
+  height: 60vh;
+  align-items: center;
+  justify-content: center;
+  background-color: #17242f;
+  gap: 25px;
+  position: relative;
+  margin-bottom: 20%;
+  margin-left: 65%;
+  box-shadow: 0 0 1px rgb(47, 47, 50);
+}
+
+.img_button_container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background-color: #17242f;
+  gap: 120px;
+  position: relative;
+}
+
+/* 选择器容器 */
+.slider {
+  width: 80%;
+  display: flex;
+  align-items: center;
+}
+
+input[type="range"] {
+  /* 禁用浏览器默认外观 */
+  -webkit-appearance: none;
+  background: linear-gradient(75deg, #c8f1f5 0%, #76d6f0 100%);
+  border-radius: 4px;
+  width: 100%;
+  height: 12px;
+  outline: none;
+  box-shadow: 0 0 6px rgb(137, 140, 232);
+}
+
+/* 滑动选择器上的滑动按钮 */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #0fafb7;
+  transition: 0.3s;
+}
+
+/* 当滑动选择器上的滑动按钮滑动时 */
+input[type="range"]:active::-webkit-slider-thumb {
+  background-color: #0865bb;
+  box-shadow: 0 0 0 6px rgba(6, 75, 236, 0.4);
+}
+
+/* 显示数值的容器 */
+.selected {
+  margin-right: 16px;
+  background-color: #089f77;
+  width: 80px;
+  line-height: 40px;
+  text-align: center;
+  color: white;
+  border-radius: 4px;
+  position: relative;
+}
+
+/* 三角 */
+.selected::after {
+  content: "";
+  display: block;
+  border-top: 8px solid transparent;
+  border-left: 8px solid #089f77;
+  border-bottom: 8px solid transparent;
+  position: absolute;
+  top: calc(50% - 8px);
+  right: -6px;
+}
+
+.label {
+  margin-right: 16px;
+  width: 180px;
+  background-color: #089f77;
+  text-align: center;
+  color: white;
+  border-radius: 10px;
+  line-height: 25px;
+  position: relative; 
+}
+
+.select_list_wrapper {
+  width: 80%;
+  display: flex;
+  align-items: center;
+}
+
+.select_list {
+  color: white;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: transparent;
+  border: 2px solid #a1d4f9;
+  padding: 8px 32px 8px 8px;
+  font-size: 16px;
+  border-radius: 4px;
+}
+
+.select_list option {
+  padding: 8px;
+}
+
+li {
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  list-style: none;
+}
+
+li a:hover {
+  text-shadow: 0 0 4px rgb(74, 76, 76);
+}
+
+li a::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  background: rgb(67, 69, 70);
+  transition: 0.6s;
+  transform: scale(0.8);
+  z-index: -1;
+}
+
+li a:hover::before {
+  box-shadow: 0 0 14px 2px rgb(53, 54, 54);
+  transform: scale(1.05);
+}
+
+.svg-icon {
+  transition: 0.6s;
+  /* filter: invert(1); */
+}
+
+li a:hover .svg-icon {
+  filter: drop-shadow(0 0 5px rgb(29, 205, 205));
+  /* filter: invert(1) drop-shadow(0 0 2px rgb(51, 53, 53)); */
+}

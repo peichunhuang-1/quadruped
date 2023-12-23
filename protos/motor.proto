@@ -1,0 +1,14 @@
+syntax = "proto3";
+package motor_msg;
+import "std.proto";
+
+message Motor {
+    float angle = 1;
+    float twist = 2;
+    float torque = 3;
+}
+
+message MotorStamped {
+    std_msg.Header header = 1;
+    repeated Motor motors = 2;
+}

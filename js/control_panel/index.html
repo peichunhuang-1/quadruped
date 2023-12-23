@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Quadruped Control Interface</title>
+  </head>
+  <body>
+    <main>
+      <div class="Control-Panel"> 
+        <div class="slider" id="zeta">
+          <span class="label"> Duration (ms) </span>
+          <span class="selected">
+            0
+          </span>
+          <input type="range"  min="0" max="1000" value="0" />
+        </div>
+        <div class="slider" id="steplength">
+            <span class="label"> Step Length (mm) </span>
+            <span class="selected">
+              0
+            </span>
+            <input type="range"  min="0" max="500" value="0" />
+        </div>
+        <div class="slider" id="stanceheight">
+            <span class="label"> Stance Height (mm) </span>
+            <span class="selected">
+              100
+            </span>
+            <input type="range" min="100" max="250" value="100" />
+        </div>
+        <div class="slider" id="liftheight">
+          <span class="label"> Lift Height (mm) </span>
+            <span class="selected">
+              0
+            </span>
+            <input type="range" min="0" max="150" value="0" />
+        </div>
+          <div id="type" class="select_list_wrapper">
+            <span class="label"> Gait Type </span>
+            <select class="select_list">
+                <option value=0>STOP</option>
+                <option value=1>STANCE</option>
+                <option value=2>WALK</option>
+                <option value=3>TROT</option>
+                <option value=4>COGNITIVE</option>
+            </select>
+        </div>
+        <div class="img_button_container">
+            <li><a href="javascript: void(0)" onclick="locker_cb()"><img src="./svg/lock.svg" alt="" class="svg-icon" width="50" id="locker_img"/></a></li>
+            <li><a href="javascript: void(0)" onclick="send_cb()"><img src="./svg/mail.svg" alt="" class="svg-icon" width="50" id="mail_img"/></a></li>
+        </div>
+      </div>
+    </main>
+    <script src="index.js"></script>
+  </body>
+</html>
