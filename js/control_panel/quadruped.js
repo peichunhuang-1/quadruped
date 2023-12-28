@@ -15,6 +15,13 @@ const gait_cmd_clt = ServiceClient("gait/command", reply_call_back, root, 'robot
 
 const server = http.createServer(function(request, response) {
     let filePath = '.' + request.url;
+    const allowedDirectories = ['./', './svg', './css', './js', './html'];
+    const isValidDirectory = allowedDirectories.some(dir => filePath.startsWith(dir));
+    if (!isValidDirectory) {
+      response.writeHead(403);
+      response.end('Access Forbidden');
+      return;
+    }
     if (filePath === './') {
       filePath = './index.html';
     }
@@ -27,6 +34,9 @@ const server = http.createServer(function(request, response) {
           break;
         case '.css':
           contentType = 'text/css';
+          break;
+        case '.svg':
+          contentType = 'image/svg+xml';
           break;
         default:
           contentType = 'text/html';

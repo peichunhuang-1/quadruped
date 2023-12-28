@@ -23,9 +23,21 @@ main {
   background-color: #17242f;
   gap: 25px;
   position: relative;
-  margin-bottom: 20%;
-  margin-left: 65%;
+  margin-bottom: 10%;
+  margin-left: 5%;
   box-shadow: 0 0 1px rgb(47, 47, 50);
+  /* border-radius: 10px; */
+}
+
+.Camera-Panel {
+  display: flex;
+  width: 60%;
+  height: 80vh;
+  background-color: #0b1117;
+  position: relative;
+  border-radius: 10px;
+  border-style: solid;
+  border-color: #9ba0a0;
 }
 
 .img_button_container {
@@ -68,8 +80,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* 当滑动选择器上的滑动按钮滑动时 */
 input[type="range"]:active::-webkit-slider-thumb {
-  background-color: #0865bb;
-  box-shadow: 0 0 0 6px rgba(6, 75, 236, 0.4);
+  background-color: #088ebb;
+  box-shadow: 0 0 0 6px rgba(41, 223, 232, 0.4);
 }
 
 /* 显示数值的容器 */
@@ -167,6 +179,6 @@ li a:hover::before {
 }
 
 li a:hover .svg-icon {
-  filter: drop-shadow(0 0 5px rgb(29, 205, 205));
+  filter: drop-shadow(0 0 5px rgb(117, 240, 217));
   /* filter: invert(1) drop-shadow(0 0 2px rgb(51, 53, 53)); */
 }
