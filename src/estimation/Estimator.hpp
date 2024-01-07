@@ -90,37 +90,6 @@ class Estimator {
             double total = pdf_lf + pdf_rf + pdf_rh + pdf_lh;
             if (total > 1e-4) velocity = (pdf_lf * lf_v + pdf_rf * rf_v + pdf_rh * rh_v + pdf_lh * lh_v) / total;
         }
-        
-    private:
-        size_t N = 1;
-        double dt = 0.001;
-        Eigen::Matrix<double, Eigen::Dynamic, 3> dV;
-        Eigen::Matrix<double, Eigen::Dynamic, 3> Vlf;
-        Eigen::Matrix<double, Eigen::Dynamic, 3> Vrf;
-        Eigen::Matrix<double, Eigen::Dynamic, 3> Vrh;
-        Eigen::Matrix<double, Eigen::Dynamic, 3> Vlh;
-        Eigen::Matrix<double, Eigen::Dynamic, 3> A;
-        Eigen::Matrix<double, Eigen::Dynamic, 3> W;
-        Eigen::Matrix<double, Eigen::Dynamic, 4> Q;
-        Eigen::Matrix<double, Eigen::Dynamic, 4> LF;
-        Eigen::Matrix<double, Eigen::Dynamic, 4> RF;
-        Eigen::Matrix<double, Eigen::Dynamic, 4> RH;
-        Eigen::Matrix<double, Eigen::Dynamic, 4> LH;
-        Eigen::Matrix<double, Eigen::Dynamic, 4> APH;
-        double error(Eigen::Matrix<double, Eigen::Dynamic, 3> v) {
-            Eigen::Vector3d sum_of_a = {0, 0, 0};
-            // for (int i = 0; i < N - 2; i++) {
-            //     sum_of_a += dV.row(i);
-            // }
-            // Eigen::Vector3d dv = v.row(N - 1) - v.row(0) - sum_of_a.transpose();
-            for (int i = 0; i < N - 2; i++) {
-                sum_of_a += v.row(i + 1) - v.row(i) - dV.row(i);
-            }
-
-            // return dv.norm();
-            return sum_of_a.norm();
-        }
-
         void estimate(Eigen::Vector3d &velocity, Leg &leg, Eigen::Matrix<double, Eigen::Dynamic, 4> encoder_data, double alpha_0) {
             // Eigen::Vector3d rolling(0, 0, 0);
             // Eigen::Vector3d accelerating(0, 0, 0);
@@ -159,5 +128,34 @@ class Estimator {
             Eigen::Quaterniond quat = Eigen::Quaterniond(quaternion);
             Eigen::Matrix3d rot = quat.toRotationMatrix();
             velocity = - rot * leg.contact_velocity;
+        }
+    private:
+        size_t N = 1;
+        double dt = 0.001;
+        Eigen::Matrix<double, Eigen::Dynamic, 3> dV;
+        Eigen::Matrix<double, Eigen::Dynamic, 3> Vlf;
+        Eigen::Matrix<double, Eigen::Dynamic, 3> Vrf;
+        Eigen::Matrix<double, Eigen::Dynamic, 3> Vrh;
+        Eigen::Matrix<double, Eigen::Dynamic, 3> Vlh;
+        Eigen::Matrix<double, Eigen::Dynamic, 3> A;
+        Eigen::Matrix<double, Eigen::Dynamic, 3> W;
+        Eigen::Matrix<double, Eigen::Dynamic, 4> Q;
+        Eigen::Matrix<double, Eigen::Dynamic, 4> LF;
+        Eigen::Matrix<double, Eigen::Dynamic, 4> RF;
+        Eigen::Matrix<double, Eigen::Dynamic, 4> RH;
+        Eigen::Matrix<double, Eigen::Dynamic, 4> LH;
+        Eigen::Matrix<double, Eigen::Dynamic, 4> APH;
+        double error(Eigen::Matrix<double, Eigen::Dynamic, 3> v) {
+            Eigen::Vector3d sum_of_a = {0, 0, 0};
+            // for (int i = 0; i < N - 2; i++) {
+            //     sum_of_a += dV.row(i);
+            // }
+            // Eigen::Vector3d dv = v.row(N - 1) - v.row(0) - sum_of_a.transpose();
+            for (int i = 0; i < N - 2; i++) {
+                sum_of_a += v.row(i + 1) - v.row(i) - dV.row(i);
+            }
+
+            // return dv.norm();
+            return sum_of_a.norm();
         }
 };

@@ -26,6 +26,9 @@ class Leg : public LinkLegModel
     double Radius() {return this->R;}
     double radius() {return this->r;}
     std::pair<double, double> Inverse(Eigen::Vector3d p, RIM rim);
+    double link_w = 0;
+    double link_w_d = 0;
+    std::complex<double> rim_p;
 
 };
 #endif

@@ -148,11 +148,16 @@ void Leg::PointVelocity(Eigen::Vector3d v, Eigen::Vector3d w, RIM rim, double al
 }
 
 Eigen::Vector3d Leg::RollVelocity(Eigen::Vector3d w, RIM rim, double alpha) {
-    double link_w = 0;
     double rim_radius = rim == G_POINT? this->r : this->r + this->R;
-    if (this->offset(1) < 0) link_w = O2_w_; // right side leg, left side lower rim
-    else link_w = O2_w;
-    std::complex<double> rim_p = std::polar(rim_radius, M_PI + alpha);
+    if (this->offset(1) < 0) {
+        link_w = O2_w_; // right side leg, left side lower rim
+        link_w_d = O2_w_d_;
+    }
+    else {
+        link_w = O2_w;
+        link_w_d = O2_w_d_;
+    }
+    rim_p = std::polar(rim_radius, M_PI + alpha);
     switch (rim) {
         case G_POINT:
         {
@@ -162,30 +167,35 @@ Eigen::Vector3d Leg::RollVelocity(Eigen::Vector3d w, RIM rim, double alpha) {
         case UPPER_RIM_R:
         {
             link_w = O1_w;
+            link_w_d = O1_w_d;
             return Eigen::Vector3d(0, link_w + w(1), 0).cross(Eigen::Vector3d(rim_p.imag(), 0, rim_p.real()));
         break;
         }
         case LOWER_RIM_R:
         {
             link_w = O2_w;
+            link_w_d = O2_w_d;
             return Eigen::Vector3d(0, link_w + w(1), 0).cross(Eigen::Vector3d(rim_p.imag(), 0, rim_p.real()));
         break;
         }
         case LOWER_RIM_L:
         {
             link_w = O2_w_;
+            link_w_d = O2_w_d_;
             return Eigen::Vector3d(0, link_w + w(1), 0).cross(Eigen::Vector3d(rim_p.imag(), 0, rim_p.real()));
         break;
         }
         case UPPER_RIM_L:
         {
             link_w = O1_w_;
+            link_w_d = O1_w_d_;
             return Eigen::Vector3d(0, link_w + w(1), 0).cross(Eigen::Vector3d(rim_p.imag(), 0, rim_p.real()));
         break;
         }
         default:
         {
             link_w = 0;
+            link_w_d = 0;
             return Eigen::Vector3d(0, 0, 0);
         }
         break;

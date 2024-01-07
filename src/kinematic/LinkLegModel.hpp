@@ -3,6 +3,7 @@
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include <mutex>
 enum RIM
 {
     UPPER_RIM_L = 1, // O1_
@@ -96,6 +97,10 @@ class LinkLegModel
     double O2_w = 0;
     double O1_w_ = 0;
     double O2_w_ = 0;
+    double O1_w_d = 0;
+    double O2_w_d = 0;
+    double O1_w_d_ = 0;
+    double O2_w_d_ = 0;
 
     double R;
     double r;

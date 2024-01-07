@@ -36,9 +36,11 @@ void LinkLegModel::calculate(double theta, double theta_d, double theta_dd)
 }
 void LinkLegModel::D_phi()
 {
-    double ph = this->l1 / this->l3 * cos(this->theta) / cos(this->phi);
+    double k = this->l1 / this->l3;
+    double ph = k * cos(this->theta) / cos(k * sin(this->theta));
     this->phi_d = ph * this->theta_d;
-    this->phi_dd = ph *  this->theta_dd - this->l1 / this->l3 * (sin(this->phi) * this->theta_d * this->theta_d + tan(this->phi) * cos(this->theta) * this->theta_d * this->phi_d) / cos(this->phi);
+    this->phi_dd = ph *  this->theta_dd + k * this->theta_d * (-sin(this->theta) * cos(k * sin(this->theta)) + k * cos(this->theta) * cos(this->theta) * (sin(k * sin(this->theta)))) 
+    / cos(k * sin(this->theta)) / cos(k * sin(this->theta));
 }
 void LinkLegModel::D_oe()
 {
@@ -49,22 +51,29 @@ void LinkLegModel::D_db()
 {
     double db2 = this->l2 * this->l6 * sin(M_PI - this->theta + this->phi);
     this->db_d = db2 * (-this->theta_d + this->phi_d) / this->db;
-    this->db_dd = db2  * (-this->theta_dd + this->phi_dd) / this->db + (-this->theta_d + this->phi_d) * (-this->theta_d + this->phi_d) / this->db - this->db_d  * (-this->theta_d + this->phi_d) * db2 / this->db / this->db;
+    this->db_dd = db2  * (-this->theta_dd + this->phi_dd) / this->db + (-this->theta_d + this->phi_d) * this->l2 * this->l6 * cos(M_PI - this->theta + this->phi) * (-this->theta_d + this->phi_d) / this->db - this->db_d  * (-this->theta_d + this->phi_d) * db2 / this->db / this->db;
 }
 void LinkLegModel::D_epsilon()
 {
-    this->epsilon_d = (this->l2 * this->l2 * this->phi_d + this->l6 * this->l6 * this->theta_d + this->l2 * this->l6 * cos(this->phi - this->theta) * (this->phi_d - this->theta_d)) / this->db / this->db;
-    this->epsilon_dd = (this->l2 * this->l2 * this->phi_dd + this->l6 * this->l6 * this->theta_dd + this->l2 * this->l6 * cos(this->phi - this->theta) * (this->phi_dd - this->theta_dd) - this->l2 * this->l6 * sin(this->phi - this->theta) * (this->phi * this->phi - this->theta * this->theta)) / this->db / this->db - 2.0 * (this->l2 * this->l2 * this->phi_d + this->l6 * this->l6 * this->theta_d + this->l2 * this->l6 * cos(this->phi - this->theta) * (this->phi_d + this->theta_d)) * this->db_d / this->db / this->db / this->db;
+    this->epsilon_d = (this->l2 * this->l2 * this->phi_d + this->l6 * this->l6 * this->theta_d + this->l2 * this->l6 * cos(this->phi - this->theta) * (this->phi_d + this->theta_d)) / this->db / this->db;
+    this->epsilon_dd = ((this->l2 * this->l2 * this->phi_dd + this->l6 * this->l6 * this->theta_dd + this->l2 * this->l6 * cos(this->phi - this->theta) * (this->phi_dd + this->theta_dd) - this->l2 * this->l6 * sin(this->phi - this->theta) * (this->phi - this->theta) * (this->phi_d + this->theta_d)) * this->db * this->db 
+    - (this->l2 * this->l2 * this->phi_d + this->l6 * this->l6 * this->theta_d + this->l2 * this->l6 * cos(this->phi - this->theta) * (this->phi_d + this->theta_d)) * 2 * this->db * this->db_d) / pow(this->db, 4);
 }
 void LinkLegModel::D_theta2()
 {
-    this->theta2_d = -1.0 / sin(this->theta2) * (2.0 * this->db_d * (this->l5 * this->l5 - this->l7 * this->l7)) / 4.0 / this->db / this->db / this->l7;
-    this->theta2_dd = - (cos(this->theta2) * this->theta2_d) / sin(this->theta2) / sin(this->theta2) * (2.0 * this->db_d * (this->l5 * this->l5 - this->l7 *this->l7)) / 4.0 / this->db / this->db / this->l7 - 1.0 / sin(this->theta2) * (2.0 * (this->l5 * this->l5 - this->l7 * this->l7) * this->db_dd * (4.0 * this->db* this->db * this->l7) - 16.0 * this->db * this->db_d * this->db_d * this->l7 * (this->l5 * this->l5 - this->l7 * this->l7)) / 16.0 / this->l7 / this->l7 / (this->db * this->db * this->db * this->db);
+    double num = this->db_d * this->l7 * (-4 * this->db * this->db + 2 * (this->db * this->db + this->l7 * this->l7 - this->l5 * this->l5));
+    double den_sq = (2 * this->db * this->l7) * (2 * this->db * this->l7) + (this->db * this->db + this->l7 * this->l7 - this->l5 * this->l5) * (this->db * this->db + this->l7 * this->l7 - this->l5 * this->l5);
+    double num_dt = -8 * this->db * this->db_d * this->db_d * this->l7 - 4 * this->db * this->db * this->l7 * this->db_dd + 2 * this->db_dd * this->l7 * (this->db * this->db + this->l7 * this->l7 - this->l5 * this->l5) + 4 * this->db_d * this->db_d * this->l7 * this->db;
+    this->theta2_d = num / sqrt(den_sq);
+    this->theta2_dd = (sqrt(den_sq) * num_dt - num * (8 * this->db * this->l7 * this->l7 * this->db_d - 4 * this->db * this->db_d * (this->db * this->db + this->l7 * this->l7 - this->l5 * this->l5)) * 0.5 / sqrt(den_sq)) / den_sq;
 }
 void LinkLegModel::D_rho()
 {
-    this->rho_d = 1.0 / cos(this->rho) * (this->R * cos(this->theta) * this->theta_d + this->l8 * cos(M_PI - this->theta2 + this->epsilon + this->tf) * (-this->theta2_d + this->epsilon_d) ) / this->l10;
-    this->rho_dd = (this->R * this->theta_dd * cos(this->theta) - this->R * this->theta_d * this->theta_d * sin(this->theta) + this->l8 * (-this->theta2_dd + this->epsilon_dd) * cos(M_PI - this->theta2 + this->epsilon + this->tf) - this->l8 * (-this->theta2_d + this->epsilon_d) * (-this->theta2_d + this->epsilon_d) * sin(M_PI - this->theta2 + this->epsilon + this->tf)) / this->l10 / cos(this->rho) + sin(this->rho) * this->rho_d * (this->R * cos(this->theta) * this->theta_d + this->l8 * cos(M_PI - this->theta2 + this->epsilon + this->tf) * (-this->theta2_d + this->epsilon_d)) / this->l10 / this->l10 / cos(this->rho) / cos(this->rho);
+    double num = this->R * cos(this->theta) * this->theta_d + this->l8 * (-this->theta2_d + this->epsilon_d) * cos(M_PI - this->theta2_d + this->epsilon + this->tf);
+    double den_sq = this->l10 * this->l10 - (this->R * sin(this->theta) + this->l8 * sin(M_PI - this->theta2_d + this->epsilon + this->tf)) * (this->R * sin(this->theta) + this->l8 * sin(M_PI - this->theta2_d + this->epsilon + this->tf));
+    double num_dt = -this->R * sin(this->theta) * this->theta_d * this->theta_d + this->R * cos(this->theta) * this->theta_dd + this->l8 * (-this->theta2_dd + this->epsilon_dd) * cos(M_PI - this->theta2_d + this->epsilon + this->tf) - this->l8 * (-this->theta2_d + this->epsilon_d) * (-this->theta2_d + this->epsilon_d) * sin(M_PI - this->theta2_d + this->epsilon + this->tf);
+    this->rho_d = num / sqrt(den_sq);
+    this->rho_dd = (sqrt(den_sq) * num_dt + num * num * (this->R * sin(this->theta) + this->l8 * sin(M_PI - this->theta2_d + this->epsilon + this->tf)) / sqrt(den_sq)) / den_sq;
 }
 void LinkLegModel::D_O1()
 {
@@ -95,6 +104,10 @@ void LinkLegModel::symmetry()
     this->O1_w_ = -this->O1_w;
     this->O2_w = this->rho_d;
     this->O2_w_ = -this->O2_w;
+    this->O1_w_d = -this->theta2_dd + this->epsilon_dd;
+    this->O1_w_d_ = -this->O1_w_d;
+    this->O2_w_d = this->rho_dd;
+    this->O2_w_d_ = -this->O2_w_d;
 }
 
 double LinkLegModel::inverse(double r, RIM rim) {
