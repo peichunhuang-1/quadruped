@@ -1,1 +1,3 @@
-我懶得寫README了，週一直接跟你們說怎麼用
+mkdir build
+cmake .. -DCMAKE_PREFIX_PATH=where_you_install_grpc_and_core
+make -j4
