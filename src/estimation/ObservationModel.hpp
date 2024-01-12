@@ -1,3 +1,5 @@
+#ifndef OBSERVATIONMODEL_HPP
+#define OBSERVATIONMODEL_HPP
 #include <vector>
 #include <Eigen/Dense>
 #include "ContactMap.hpp"
@@ -73,13 +75,13 @@ class LegVelocityEstimation {
     STATE observation(IMU_DATA imu, ENCODER_DATA m, DST_DATA d, bool update = false) {
         if (update) {
             std::vector<STATE>().swap(states);
-            STATE state = {
-                n_last_velocity(imu, m, d), 
-                current_velocity(imu, m, m.beta + d.alpha),
-                m.beta + d.alpha,
-                fusing_ratio * Covariance(imu, m, d.alpha),
-                weight(m, d)
-            };
+            STATE state;
+            state.predicted_velocity = n_last_velocity(imu, m, d); 
+            Eigen::Vector3d observation_velocity = current_velocity(imu, m, m.beta + d.alpha);
+            state.observed_velocity = observation_velocity;
+            state.contact_beta = m.beta + d.alpha;
+            state.covariance = fusing_ratio * Covariance(imu, m, d.alpha);
+            state.weight = weight(m, d);
             Eigen::Vector3d in_corresponse_cov = (state.predicted_velocity - state.observed_velocity).array().square();
             state.covariance += (1 - fusing_ratio) * in_corresponse_cov.asDiagonal();
             states.push_back(state);
@@ -119,7 +121,7 @@ class LegVelocityEstimation {
                 current_velocity(imu, m, contact_beta),
                 contact_beta,
                 states.back().covariance + fusing_ratio * j3.transpose() * covariance_3 * j3,
-                states.back().weight
+                weight(m, dst)
             };
             Eigen::Vector3d in_corresponse_cov = (state.predicted_velocity - state.observed_velocity).array().square();
             state.covariance += (1 - fusing_ratio) * in_corresponse_cov.asDiagonal();
@@ -127,7 +129,9 @@ class LegVelocityEstimation {
         }
         imu_input(imu);
     }
-    STATE current() {return states.back();}
+    STATE current() {
+        return states.back();
+    }
 
     private:
     Leg leg;
@@ -135,6 +139,7 @@ class LegVelocityEstimation {
     Eigen::Matrix<double, 8, 8> covariance_2;
     Eigen::Matrix<double, 6, 6> covariance_3;
     double fusing_ratio = 0.8;
+    double covariance_contact = 0.05;
     double durations;
     std::vector<IMU_DATA> imus;
     std::vector<ENCODER_DATA> encoders;
@@ -148,12 +153,13 @@ class LegVelocityEstimation {
         leg.Calculate(m.theta, 0, 0, m.beta, 0, 0);
         leg.PointContact(cm.lookup(m.theta, m.beta+d.alpha), d.alpha);
         double dst_to_ground = -leg.contact_point(2);
-        double sigma = (0.01 + abs(leg.contact_point(0)) * 0.1);
-        return gaussian_erf((dst_to_ground - dst.dist) / sqrt(2) / sigma / sigma);
+        double sigma = (covariance_contact + abs(leg.contact_point(0)) * 0.1);
+        return gaussian_erf((dst_to_ground + leg.contact_point(0) * tan(d.alpha) - dst.dist) / sqrt(2) / sigma / sigma);
     }
     Eigen::Vector3d current_velocity(IMU_DATA imu, ENCODER_DATA m, double contact_beta) {
         ContactMap cm;
         leg.Calculate(m.theta, m.theta_d, 0, m.beta, m.beta_d, 0);
+        leg.PointContact(cm.lookup(m.theta, contact_beta), contact_beta - m.beta);
         leg.PointVelocity(Eigen::Vector3d(0, 0, 0), imu.w, cm.lookup(m.theta, contact_beta), contact_beta - m.beta);
         Eigen::Quaterniond quat = Eigen::Quaterniond(imu.q);
         Eigen::Matrix3d rot = quat.toRotationMatrix();
@@ -181,9 +187,11 @@ class LegVelocityEstimation {
         double r = euler(0); double p = euler(1); double y = euler(2);
         RIM rim = cm.lookup(m.theta, m.beta + alpha);
         leg.Calculate(m.theta, 1, 0, m.beta, 0, 0);
+        leg.PointContact(cm.lookup(m.theta, rim), alpha);
         leg.PointVelocity(Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), rim, alpha);
         Eigen::Vector3d j_dtheta = rot * leg.contact_velocity; // 1
         leg.Calculate(m.theta, 0, 0, m.beta, 1, 0);
+        leg.PointContact(cm.lookup(m.theta, rim), alpha);
         leg.PointVelocity(Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), rim, alpha);
         Eigen::Vector3d j_dbeta = rot * leg.contact_velocity; // 2
         double rim_radius = rim == G_POINT? leg.radius() : leg.radius() + leg.Radius();
@@ -206,7 +214,7 @@ class LegVelocityEstimation {
     }
 
     Eigen::Matrix3d Covariance(IMU_DATA imu, ENCODER_DATA m, double alpha) {
-        if (encoders.empty()) return Eigen::Matrix3d::Zero();
+        if (encoders.empty()) return Eigen::Matrix3d::Identity();
         Eigen::Matrix3d covariance = Eigen::Matrix3d::Zero();
 
         ContactMap cm;
@@ -221,7 +229,6 @@ class LegVelocityEstimation {
         Eigen::Vector3d j_rolling_dbeta_d(0, 0, 0); // 8
         Eigen::Vector3d j_rolling_domegay(0, 0, 0); // 9
         
-
         Eigen::Vector3d j_acceleration_dr1(0, 0, 0); // 4
         Eigen::Vector3d j_acceleration_dr2(0, 0, 0); // 5
         Eigen::Vector3d j_acceleration_dr3(0, 0, 0); // 6
@@ -331,3 +338,4 @@ class LegVelocityEstimation {
         return (pose_kn_last - pose_k - rolling - accelerating) / ((double) length * durations) + acceleration;
     }
 };
+#endif

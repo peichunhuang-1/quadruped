@@ -1,3 +1,29 @@
+let ip_addr = window.prompt('WebServer Address: [IP : port]');
+let event_socket;
+if (ip_addr) {
+    event_socket = new WebSocket('ws://'+ip_addr);
+}
+let locked = true;
+let input = {
+    type : 0,
+    zeta : 0,
+    stanceheight : 0.1,
+    liftheight : 0,
+    steplength : 0,
+    digital: false, 
+    signal: false,
+    power: false,
+    vicon_trigger: false,
+    orin_trigger: false,
+    mode: 0
+};
+
+const send_cb = function() {
+    if (event_socket) {
+        event_socket.send(JSON.stringify(input));
+    }
+}
+
 function range_slider_group(json) {
     const ranges = document.querySelectorAll('input[type=range]');
     for (var i = 0; i < ranges.length; i++) {
@@ -18,9 +44,16 @@ function range_slider_group(json) {
         json[this.parentElement.id] = this.value;
         });
     }
+    const buttons = document.querySelectorAll('.button');
+    for (var i = 0; i < buttons.length; i++) {
+        buttons[i].addEventListener("click", function() {
+        this.classList.toggle('active');
+        json[this.id] = this.classList.contains('active');
+        send_cb();
+        });
+    }
 }
 
-let locked = true;
 function locker_cb() {
     var lockImage = document.getElementById('locker_img');
     var currentSrc = lockImage.getAttribute('src');
@@ -33,28 +66,9 @@ function locker_cb() {
     }
 }
 
-
-let input = {
-    type : 0,
-    zeta : 0,
-    stanceheight : 0.1,
-    liftheight : 0,
-    steplength : 0
-};
-
 range_slider_group(input);
 
-let ip_addr = window.prompt('WebServer Address: [IP : port]');
-let event_socket;
-if (ip_addr) {
-    event_socket = new WebSocket('ws://'+ip_addr);
-}
 
-const send_cb = function() {
-    if (event_socket) {
-        event_socket.send(JSON.stringify(input));
-    }
-}
 
 setInterval(()=>{
     if (!locked) {

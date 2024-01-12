@@ -10,8 +10,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
+
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(mip REQUIRED NO_MODULE)
+find_package(yaml-cpp REQUIRED)
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/common.cmake)
 
 # generate proto file c/c++ interface

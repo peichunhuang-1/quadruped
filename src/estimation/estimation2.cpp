@@ -1,21 +1,26 @@
 #include <iostream>
 #include "csv_reader.hpp"
 #include "ObservationModel.hpp"
-
+#include "Optimizer.hpp"
 int main(int argc, char* argv[]) {
     std::string filenumber = std::string(argv[1]);
     std::string filename = "data/data" + filenumber;
     DataProcessor::DataFrame df =  DataProcessor::read_csv(filename+".csv");
     int n = df.row;
-    LegVelocityEstimation lf_leg(Eigen::Vector3d(0.2, 0.15, 0), 0.1, 0.012, 0.005);
-    LegVelocityEstimation rf_leg(Eigen::Vector3d(0.2, -0.15, 0), 0.1, 0.012, 0.005);
-    LegVelocityEstimation rh_leg(Eigen::Vector3d(-0.2, -0.15, 0), 0.1, 0.012, 0.005);
-    LegVelocityEstimation lh_leg(Eigen::Vector3d(-0.2, 0.15, 0), 0.1, 0.012, 0.005);
+    LegVelocityEstimation lf_leg(Eigen::Vector3d(0.2, 0.15, 0), 0.1, 0.01, 0.005);
+    LegVelocityEstimation rf_leg(Eigen::Vector3d(0.2, -0.15, 0), 0.1, 0.01, 0.005);
+    LegVelocityEstimation rh_leg(Eigen::Vector3d(-0.2, -0.15, 0), 0.1, 0.01, 0.005);
+    LegVelocityEstimation lh_leg(Eigen::Vector3d(-0.2, 0.15, 0), 0.1, 0.01, 0.005);
     Eigen::MatrixXd estimate_state = Eigen::MatrixXd::Zero(n, 30);
     Eigen::Vector3d true_value_estimate;
     int counter = 0;
+    VelocityOptimizer fopt_p;
+    nlopt::opt fopt = Optimizer(&fopt_p);
+    std::vector<double> u {0, 0, 0};
+    double minf = 0;
+
     for (int i = 1; i < n - 1; i++) {
-        bool update = counter % 20 == 0? true: false;
+        bool update = counter % 5 == 0? true: false;
         ENCODER_DATA elf = {
             df.iloc("lf.beta", i),
             df.iloc("lf.theta", i),
@@ -69,20 +74,37 @@ int main(int argc, char* argv[]) {
         rh_leg.observation(imu, erh, drh, update);
         lh_leg.observation(imu, elh, dlh, update);
 
+        // Eigen::Vector3d a_in_world = (Eigen::Quaterniond(imu.q).toRotationMatrix() * (imu.a)).cwiseAbs() + Eigen::Vector3d(1e-3, 1e-3, 1e-3);
+        // Eigen::Vector3d v_last(u.data());
+        // Eigen::Vector3d lb = v_last - a_in_world * 0.005 - Eigen::Vector3d(1e-3, 1e-3, 1e-3);
+        // Eigen::Vector3d ub = v_last + a_in_world * 0.005 + Eigen::Vector3d(1e-3, 1e-3, 1e-3);
+
+        // fopt.set_lower_bounds(std::vector<double>(lb.data(), lb.data()+3));
+        // fopt.set_upper_bounds(std::vector<double>(ub.data(), ub.data()+3));
+
+        // optimize
+        fopt_p.states[0] = lf_leg.current();
+        fopt_p.states[1] = rf_leg.current();
+        fopt_p.states[2] = rh_leg.current();
+        fopt_p.states[3] = lh_leg.current();
+        fopt.optimize(u, minf);
+        // std::cout << "minf: " << minf << "\n";
         Eigen::Vector3d lf_v, rf_v, rh_v, lh_v;
-        lf_v = lf_leg.current().predicted_velocity;
-        rf_v = rf_leg.current().predicted_velocity;
-        rh_v = rh_leg.current().predicted_velocity;
-        lh_v = lh_leg.current().predicted_velocity;
+        lf_v = fopt_p.states[0].observed_velocity;
+        rf_v = fopt_p.states[1].observed_velocity;
+        rh_v = fopt_p.states[2].observed_velocity;
+        lh_v = fopt_p.states[3].observed_velocity;
 
         estimate_state.row(i).segment(0, 4) = Eigen::Vector4d(lf_leg.current().covariance(0, 0), rf_leg.current().covariance(0, 0), rh_leg.current().covariance(0, 0), lh_leg.current().covariance(0, 0));
         estimate_state.row(i).segment(4, 4) = Eigen::Vector4d(df.iloc("lf.contact", i), df.iloc("rf.contact", i), df.iloc("rh.contact", i), df.iloc("lh.contact", i));
+        estimate_state.row(i).segment(8, 4) = Eigen::Vector4d(fopt_p.states[0].weight, fopt_p.states[1].weight, fopt_p.states[2].weight, fopt_p.states[3].weight);
         estimate_state.row(i).segment(12, 3) = lf_v;
         estimate_state.row(i).segment(15, 3) = rf_v;
         estimate_state.row(i).segment(18, 3) = rh_v;
         estimate_state.row(i).segment(21, 3) = lh_v;
 
         estimate_state.row(i).segment(24, 3) = Eigen::Vector3d(df.iloc("v.x", i), df.iloc("v.y", i), df.iloc("v.z", i));
+        estimate_state.row(i).segment(27, 3) = Eigen::Vector3d(u[0], u[1], u[2]);
         counter++;
         // estimate_state.row(i).segment(27, 3) = true_value_estimate;
     }

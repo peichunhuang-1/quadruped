@@ -4,11 +4,42 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/button.css" />
     <title>Quadruped Control Interface</title>
   </head>
   <body>
     <main>
-      <div class="Camera-Panel">
+      <div class="Dashboard-Panel"></div>
+      <div class="Power-Panel">
+        
+        <div id="mode" class="select_list_wrapper">
+          <span class="label"> Motor Mode </span>
+          <select class="select_list">
+              <option value=0>REST_MODE</option>
+              <option value=1>HALL_CALIBRATE</option>
+              <option value=2>MOTOR_MODE</option>
+              <option value=3>SET_ZERO</option>
+          </select>
+        </div>
+
+        <div class="Button-Panel">
+          <div id="digital" class="button"> 
+            <span class="button-text">Digital</span>
+          </div>
+          <div id="signal" class="button"> 
+            <span class="button-text">Signal</span>
+          </div>
+          <div id="power" class="button"> 
+            <span class="button-text">Power</span>
+          </div>
+          <div id="vicon_trigger" class="button"> 
+            <span class="button-text">Vicon</span>
+          </div>
+          <div id="orin_trigger" class="button"> 
+            <span class="button-text">Orin</span>
+          </div>
+        </div>
+
       </div>
       <div class="Control-Panel"> 
         <div class="slider" id="zeta">
@@ -39,7 +70,7 @@
             </span>
             <input type="range" min="0" max="150" value="0" />
         </div>
-          <div id="type" class="select_list_wrapper">
+        <div id="type" class="select_list_wrapper">
             <span class="label"> Gait Type </span>
             <select class="select_list">
                 <option value=0>STOP</option>

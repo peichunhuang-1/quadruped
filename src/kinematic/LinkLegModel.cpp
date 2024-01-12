@@ -138,7 +138,7 @@ double LinkLegModel::inverse(double r, RIM rim) {
             if (r < this->R) r = R;
             else if (r > max_r_G) r = max_r_G;
             theta_optimal = (r - this->R) / (max_r_G - this->R) * (max_theta - min_theta) + min_theta;
-            std::cout << theta_optimal << "\n";
+            // std::cout << theta_optimal << "\n";
             for (int i = 0; i < 10; i ++) {
                 this->calculate(theta_optimal, 0, 0);
                 theta_optimal += (-this->G.real() - r);

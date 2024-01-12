@@ -7,12 +7,18 @@
 
 main {
   display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   height: 100vh;
   background-color: #1d3144;
+  gap: 25px;
 }
-
+.Dashboard-Panel {
+  width: 60%;
+  height: 80vh;
+}
 .Control-Panel {
   display: flex;
   flex-direction: column;
@@ -23,21 +29,31 @@ main {
   background-color: #17242f;
   gap: 25px;
   position: relative;
-  margin-bottom: 10%;
-  margin-left: 5%;
+  /* margin-bottom: 20%;
+  margin-right: 5%; */
   box-shadow: 0 0 1px rgb(47, 47, 50);
   /* border-radius: 10px; */
 }
 
-.Camera-Panel {
+.Power-Panel {
   display: flex;
-  width: 60%;
-  height: 80vh;
-  background-color: #0b1117;
+  width: 30%;
+  height: 20vh;
+  flex-direction: column;
+  gap: 25px;
+  background-color: #17242f;
   position: relative;
-  border-radius: 10px;
-  border-style: solid;
-  border-color: #9ba0a0;
+  /* margin-bottom: 5%;
+  margin-left: 5%; */
+  align-items: center;
+  justify-content: center;
+}
+
+.Button-Panel {
+  display: flex;
+  gap: 30px;
+  flex-direction: row;
+  position: relative;
 }
 
 .img_button_container {

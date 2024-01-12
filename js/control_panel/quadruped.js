@@ -5,13 +5,14 @@ const fs = require('fs');
 const WebSocket = require('ws');
 const path = require('path');  
 const proto_loader = require('./Load_proto.js');  
-
-const root = proto_loader("./../../protos", protobuf);
+const proto_Path = `${process.env.PROTO_PATH}`;
+const root = proto_loader(["./../../protos", proto_Path], protobuf);
 function reply_call_back(reply) {
     console.log(reply);
 }
 
 const gait_cmd_clt = ServiceClient("gait/command", reply_call_back, root, 'robot_msg.GaitRequest', 'robot_msg.GaitReply');
+const power_cmd_clt = ServiceClient("power/command", reply_call_back, root, 'power_msg.PowerBoardStamped', 'power_msg.PowerBoardStamped');
 
 const server = http.createServer(function(request, response) {
     let filePath = '.' + request.url;
@@ -75,6 +76,12 @@ ws.on('message', function(message) {
       liftheight : data.liftheight,
       steplength : data.steplength
     });
+    power_cmd_clt.send({
+      digital: {'digital': data.digital, 'signal': data.signal, 'power': data.power, 'vicon_trigger': data.vicon_trigger, 'orin_trigger': data.orin_trigger}, 
+      analog: {},
+      mode: data.mode
+    })
+    console.log(data);
 });
 
 ws.on('close', function() {

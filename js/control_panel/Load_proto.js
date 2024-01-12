@@ -1,13 +1,17 @@
 const fs = require('fs');
-function loadProtosFromFolder(folderPath, protobuf) {
-const files = fs.readdirSync(folderPath);
-const proto_files = [];
-files.forEach((file) => {
-    if (file.endsWith('.proto')) {
-      file = `${folderPath}/${file}`;
-      proto_files.push(file);
-    }
-});
+function loadProtosFromFolder(folderPaths, protobuf) {
+  const proto_files = [];
+  console.log(folderPaths);
+  for (folderPath of folderPaths) {
+  console.log(folderPath);
+  const files = fs.readdirSync(folderPath);
+  files.forEach((file) => {
+      if (file.endsWith('.proto')) {
+        file = `${folderPath}/${file}`;
+        proto_files.push(file);
+      }
+  });
+  }
 return protobuf.loadSync(proto_files);
 }
 
