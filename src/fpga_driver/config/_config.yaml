@@ -1,0 +1,102 @@
+# TCP node communication setup
+Master_IP: "127.0.0.1"
+Master_port: 9999
+Local_IP: "127.0.0.1"
+
+Command_topic: "/fpga/command"
+Publish_topic: "/fpga/state"
+
+# Interrupt Setup, Triggered By FPGA IRQ
+# IRQ 0
+# Loop Period (type int) of the main loop, where controllers were implemented
+MainLoop_period_us: 1000
+# IRQ 1
+# Loop Period (type int) of the loop handling CAN transceiving, at least 1000 us
+CANLoop_period_us: 1000
+
+# CAN Bus timeout
+CAN_Timeout_us: 500
+
+# MOD A
+LF_Module:
+  Enable: 1
+  CAN_PORT: "MOD1CAN0"
+  Motor_R:
+    FW_Version: 3
+    CAN_ID: 19
+    KP: 50
+    KI: 0
+    KD: 1.5
+    Torque_Feedfoward: 0
+  Motor_L:
+    FW_Version: 3
+    CAN_ID: 20
+    KP: 50
+    KI: 0
+    KD: 1.5
+    Torque_Feedfoward: 0
+
+# MOD B
+RF_Module:
+  Enable: 1
+  CAN_PORT: "MOD1CAN1"
+  Motor_R:
+    FW_Version: 3
+    CAN_ID: 11
+    KP: 50
+    KI: 0
+    KD: 1.5
+    Torque_Feedfoward: 0
+  Motor_L:
+    FW_Version: 3
+    CAN_ID: 17
+    KP: 50
+    KI: 0
+    KD: 1.5
+    Torque_Feedfoward: 0
+
+# MOD C
+RH_Module:
+  Enable: 1
+  CAN_PORT: "MOD2CAN0"
+  Motor_R:
+    FW_Version: 3
+    CAN_ID: 16
+    KP: 50
+    KI: 0
+    KD: 1.5
+    Torque_Feedfoward: 0
+  Motor_L:
+    FW_Version: 3
+    CAN_ID: 15
+    KP: 50
+    KI: 0
+    KD: 1.5
+    Torque_Feedfoward: 0
+
+# MOD D
+LH_Module:
+  Enable: 1
+  CAN_PORT: "MOD2CAN1"
+  Motor_R:
+    FW_Version: 3
+    CAN_ID: 14
+    KP: 50
+    KI: 0
+    KD: 1.5
+    Torque_Feedfoward: 0
+  Motor_L:
+    FW_Version: 3
+    CAN_ID: 13
+    KP: 50
+    KI: 0
+    KD: 1.5
+    Torque_Feedfoward: 0
+
+# ADD USED MODULE IN LIST
+Number_of_modules: 4
+Modules_list:
+  0: LF_Module
+  1: RF_Module
+  2: RH_Module
+  3: LH_Module
