@@ -3,9 +3,9 @@
 #include <fpga_server.hpp>
 
 /* TCP node connection setup*/
-int motor_message_updated = 0;
-int fpga_message_updated = 0;
-bool vicon_toggle = true;
+volatile int motor_message_updated = 0;
+volatile int fpga_message_updated = 0;
+volatile bool vicon_toggle = true;
 
 std::mutex mutex_;
 motor_msg::MotorStamped motor_data;
@@ -13,6 +13,7 @@ void motor_data_cb(motor_msg::MotorStamped msg) {
     mutex_.lock();
     motor_message_updated = 1;
     motor_data = msg;
+    // if (motor_data.motors().size() == 8) std::cout << "motor_data : " << motor_data.motors(0).angle() << std::endl;
     mutex_.unlock();
 }
 power_msg::PowerBoardStamped power_command_request;
@@ -50,7 +51,7 @@ Corgi::Corgi()
     NO_SWITCH_TIMEDOUT_ERROR_ = true;
     HALL_CALIBRATED_ = false;
 
-    max_timeout_cnt_ = 10;
+    max_timeout_cnt_ = 100;
 
     powerboard_state_.push_back(digital_switch_);
     powerboard_state_.push_back(signal_switch_);
@@ -292,6 +293,8 @@ void Corgi::mainLoop_(core::ServiceServer<power_msg::PowerBoardStamped, power_ms
     motor_msg::MotorStamped motor_module;
     int index = 0;
     core::spinOnce();
+    mutex_.lock();
+
     for (auto &mod : modules_list_)
     {
         if (mod.enable_)
@@ -334,7 +337,9 @@ void Corgi::mainLoop_(core::ServiceServer<power_msg::PowerBoardStamped, power_ms
             // initialize message
 
             // update
-            mutex_.lock();
+            // std::cout << "mtr_updated: " << motor_message_updated << "motor_data.motors().size(): " << motor_data.motors().size() << std::endl;
+            // std::cout << "mtr_updated: " << motor_message_updated << std::endl;
+            // std::cout << "bool=" << motor_message_updated << NO_CAN_TIMEDOUT_ERROR_ << NO_SWITCH_TIMEDOUT_ERROR_ << std::endl;
             if (motor_message_updated && NO_CAN_TIMEDOUT_ERROR_ && NO_SWITCH_TIMEDOUT_ERROR_ && motor_data.motors().size() == 8)
             {
                 if (cmd_type_ == Command_type::THETA_BETA)
@@ -368,7 +373,7 @@ void Corgi::mainLoop_(core::ServiceServer<power_msg::PowerBoardStamped, power_ms
                     mod.txdata_buffer_[0].position_ = motor_data.motors(index*2).angle();
                     mod.txdata_buffer_[1].position_ = motor_data.motors(index*2+1).angle();
                 }
-
+                // std::cout << "data=" << motor_data.motors(index*2).angle() << std::endl;
                 mod.txdata_buffer_[0].torque_ = motor_data.motors(index*2).torque();
                 mod.txdata_buffer_[1].torque_ = motor_data.motors(index*2+1).torque();
                 mod.txdata_buffer_[0].KP_ = motor_data.motors(index*2).kp();
@@ -378,11 +383,11 @@ void Corgi::mainLoop_(core::ServiceServer<power_msg::PowerBoardStamped, power_ms
                 mod.txdata_buffer_[1].KI_ = motor_data.motors(index*2+1).ki();
                 mod.txdata_buffer_[1].KD_ = motor_data.motors(index*2+1).kd();
             }
-            motor_message_updated = 0;
-            mutex_.unlock();
         }
         index++;
     }
+    motor_message_updated = 0;
+    mutex_.unlock();
     state_pub_.publish(motor_module);
 
     // log data
