@@ -99,7 +99,7 @@ void Leg::PointContact(RIM rim, double alpha) {
     }
 }
 
-void Leg::PointVelocity(Eigen::Vector3d v, Eigen::Vector3d w, RIM rim, double alpha) {
+void Leg::PointVelocity(Eigen::Vector3d v, Eigen::Vector3d w, RIM rim, double alpha, bool inbody_coord) {
     double rim_radius = rim == G_POINT? this->r : this->r + this->R;
     if (this->offset(1) < 0) link_w = O2_w_; // right side leg, left side lower rim
     else link_w = O2_w;
@@ -141,9 +141,11 @@ void Leg::PointVelocity(Eigen::Vector3d v, Eigen::Vector3d w, RIM rim, double al
         }
         break;
     }
-    std::complex<double> normal_vec = std::polar(1., alpha);
-    std::complex<double> tangent_vec = std::polar(1., alpha + M_PI_2);
-    this->contact_velocity = Eigen::Vector3d(this->contact_velocity.dot(Eigen::Vector3d(tangent_vec.imag(), 0, tangent_vec.real())), this->contact_velocity(1), this->contact_velocity.dot(Eigen::Vector3d(normal_vec.imag(), 0, normal_vec.real())));
+    if (!inbody_coord) {
+        std::complex<double> normal_vec = std::polar(1., alpha);
+        std::complex<double> tangent_vec = std::polar(1., alpha + M_PI_2);
+        this->contact_velocity = Eigen::Vector3d(this->contact_velocity.dot(Eigen::Vector3d(tangent_vec.imag(), 0, tangent_vec.real())), this->contact_velocity(1), this->contact_velocity.dot(Eigen::Vector3d(normal_vec.imag(), 0, normal_vec.real())));
+    }
 }
 
 Eigen::Vector3d Leg::RollVelocity(Eigen::Vector3d w, RIM rim, double alpha) {

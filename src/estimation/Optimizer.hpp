@@ -19,12 +19,16 @@ double opt_func(const std::vector<double> &x, std::vector<double> &grad, void *f
         weight_sum += x[3+i];
     }
     Eigen::Vector3d diff = v - fop->prediction_velocity;
-    double vpv = std::sqrt(diff.transpose() * fop->prediction_velocity_cov.inverse() * diff);
+    double vpv = weight_sum * std::sqrt(diff.transpose() * fop->prediction_velocity_cov.inverse() * diff);
     cost += vpv;
     fop->velocity = v;
     fop->velocity_cov = cov / weight_sum;
-    
+
     return cost;
+}
+
+double constraint(const std::vector<double> &x, std::vector<double> &grad, void *data) {
+    return 1. - (x[3] + x[4] + x[5] + x[6]);
 }
 
 nlopt::opt Optimizer(BodyEstimation* fop)
@@ -40,20 +44,18 @@ nlopt::opt Optimizer(BodyEstimation* fop)
     // LD_CCSAQ
     // LD_SLSQP
     // LD_VAR2
-    nlopt::opt fopt = nlopt::opt(nlopt::LN_BOBYQA, 7);
-    fopt.set_param("inner_maxeval", 200);
-    fopt.set_maxeval(200);
+    nlopt::opt fopt = nlopt::opt(nlopt::LN_COBYLA, 7);
+    fopt.set_param("inner_maxeval", 300);
+    fopt.set_maxeval(300);
     std::vector<double> lb {-2, -2, -2, 0, 0, 0, 0};
     
     std::vector<double> ub {2, 2, 2, 1, 1, 1, 1};
-
     fopt.set_lower_bounds(lb);
     fopt.set_upper_bounds(ub);
     fopt.set_min_objective(opt_func, fop);
-    double tol = 1e-5;
+    double tol = 1e-6;
     // std::vector<double> tols {1e-3, 1e-3, 1e-3, 1e-3};
-
-    // fopt.add_inequality_mconstraint(constraints, fop, tols);
+    fopt.add_inequality_constraint(constraint, fop, tol);
     fopt.set_xtol_rel(tol);
     fopt.set_force_stop(tol);
     return fopt;

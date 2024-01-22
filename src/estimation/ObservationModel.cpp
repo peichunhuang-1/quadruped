@@ -215,10 +215,12 @@ Eigen::Vector3d LegVelocityEstimation::velocity(IMU_DATA imu, ENCODER_DATA m, DS
         if (rim != cm.lookup(encoders[i].theta, contact_beta)) {
             rolling -= (rot * leg.contact_point - last_contact_point);
             if (rim == G_POINT) {
-                double bound_beta = cm.boudary_beta(last_theta, last_contact_beta, encoders[i].theta, contact_beta);
-                double current_beta = contact_beta - bound_beta; cm.rad_mod2(current_beta);
-                double diff = (contact_beta - bound_beta); cm.rad_mod(diff);
-                rolling -= rot * Eigen::Vector3d((leg.Radius() - leg.radius()) * diff, 0, 0);
+                if (cm.lookup(encoders[i].theta, contact_beta) == LOWER_RIM_R || cm.lookup(encoders[i].theta, contact_beta) == LOWER_RIM_L) {
+                    double bound_beta = cm.boudary_beta(last_theta, last_contact_beta, encoders[i].theta, contact_beta);
+                    double current_beta = contact_beta - bound_beta; cm.rad_mod2(current_beta);
+                    double diff = (contact_beta - bound_beta); cm.rad_mod(diff);
+                    rolling -= rot * Eigen::Vector3d((leg.Radius() - leg.radius()) * diff, 0, 0);
+                }
             }
         }
         rim = cm.lookup(encoders[i].theta, contact_beta);
@@ -238,10 +240,12 @@ Eigen::Vector3d LegVelocityEstimation::velocity(IMU_DATA imu, ENCODER_DATA m, DS
     if (cm.lookup(m.theta, m.beta + d.alpha) != cm.lookup(encoders.back().theta, last_contact_beta)) {
         rolling -= (rot * leg.contact_point - last_contact_point);
         if (cm.lookup(encoders.back().theta, last_contact_beta) == G_POINT) {
-            double bound_beta = cm.boudary_beta(encoders.back().theta, last_contact_beta, m.theta, m.beta + d.alpha);
-            double current_beta = m.beta + d.alpha; cm.rad_mod2(current_beta);
-            double diff = (current_beta - bound_beta); cm.rad_mod(diff);
-            rolling -= rot * Eigen::Vector3d( (leg.Radius() - leg.radius()) * diff, 0, 0);
+            if (cm.lookup(m.theta, m.beta + d.alpha) == LOWER_RIM_R || cm.lookup(m.theta, m.beta + d.alpha) == LOWER_RIM_L) {
+                double bound_beta = cm.boudary_beta(encoders.back().theta, last_contact_beta, m.theta, m.beta + d.alpha);
+                double current_beta = m.beta + d.alpha; cm.rad_mod2(current_beta);
+                double diff = (current_beta - bound_beta); cm.rad_mod(diff);
+                rolling -= rot * Eigen::Vector3d( (leg.Radius() - leg.radius()) * diff, 0, 0);
+            }
         }
     }
     leg.Calculate(encoders[0].theta, encoders[0].theta_d, 0, encoders[0].beta, encoders[0].beta_d, 0);

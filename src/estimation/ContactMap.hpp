@@ -70,7 +70,7 @@ class ContactMap {
             double bound_beta;
             if (abs(diff1) > abs(diff2)) bound_beta = bu;
             else bound_beta = bl;
-            std::cout << bound_beta << "\t" << beta << "\t" << beta2 << "\t" << rim << "\t" << rim2 << "\n\n";
+            // std::cout << bound_beta << "\t" << beta << "\t" << beta2 << "\t" << rim << "\t" << rim2 << "\n\n";
             return bound_beta;
         }
         void rad_mod(double &rad) {

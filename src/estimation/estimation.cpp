@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     nlopt::opt fopt = Optimizer(&fopt_p);
     std::vector<double> u {0, 0, 0, .5, .5, .5, .5};
     double minf = 0;
-
+    ContactMap cm;
     for (int i = 1; i < n - 1; i++) {
         bool update = counter % 5 == 0? true: false;
         // std::cout << i << "\n";
@@ -80,14 +80,28 @@ int main(int argc, char* argv[]) {
         rh_v = rh_leg.calculate(imu, erh, drh, update);
         lh_v = lh_leg.calculate(imu, elh, dlh, update);
         // optimize
+
+        try {
         fopt.optimize(u, minf);
-        // std::cout << "minf: " << minf << "\n";
+         }catch (const nlopt::roundoff_limited &ex) {
+            // Handle the specific exception
+            std::cerr << "Caught nlopt::roundoff_limited exception: " << ex.what() << std::endl;
+        }
+        Eigen::Quaterniond quat = Eigen::Quaterniond(Eigen::Vector4d(df.iloc("q.x", i), df.iloc("q.y", i), df.iloc("q.z", i), df.iloc("q.w", i)));
+        Eigen::Matrix3d rot = quat.toRotationMatrix();
+        lf_leg.leg.Calculate(df.iloc("lf.theta", i), df.iloc("lf.theta_d", i), 0, df.iloc("lf.beta", i), df.iloc("lf.beta_d", i), 0);
+        lf_leg.leg.PointContact(cm.lookup(df.iloc("lf.theta", i), df.iloc("lf.beta", i) + alpha_l), alpha_l);
+        lf_leg.leg.PointVelocity(rot.transpose() * Eigen::Vector3d(u[0], u[1], u[2]), Eigen::Vector3d(df.iloc("w.x", i), df.iloc("w.y", i), df.iloc("w.z", i)),
+            cm.lookup(df.iloc("lf.theta", i), df.iloc("lf.beta", i) + alpha_l), alpha_l,
+            false
+        );
+
         fopt_p.prediction();
         fopt_p.update_weight(update);
-        // estimate_state.row(i).segment(0, 4) = Eigen::Vector4d(lf_v.ground.point(2), rf_v.ground.point(2), rh_v.ground.point(2), lh_v.ground.point(2));
+        estimate_state.row(i).segment(0, 4) = Eigen::Vector4d(u[3], u[4], u[5], u[6]);
         estimate_state.row(i).segment(4, 4) = Eigen::Vector4d(df.iloc("lf.contact", i), df.iloc("rf.contact", i), df.iloc("rh.contact", i), df.iloc("lh.contact", i));
         estimate_state.row(i).segment(8, 4) = fopt_p.weights;
-        estimate_state.row(i).segment(12, 3) = lf_v.predicted_velocity;
+        estimate_state.row(i).segment(12, 3) = lf_leg.leg.contact_point;
         estimate_state.row(i).segment(15, 3) = rf_v.predicted_velocity;
         estimate_state.row(i).segment(18, 3) = rh_v.predicted_velocity;
         estimate_state.row(i).segment(21, 3) = lh_v.predicted_velocity;

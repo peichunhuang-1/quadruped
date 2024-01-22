@@ -116,7 +116,7 @@ class BodyEstimation {
         void update_weight(bool update) {
             for (int i = 0; i < 4; i++) weights(i) = legs[i]->weight(current_position, update, sigma);
         }
-        double sigma = 0.01;
+        double sigma = 0.05;
         std::vector<LegVelocityEstimation *> legs;
         Eigen::Vector4d weights;
         Eigen::Vector3d current_position;

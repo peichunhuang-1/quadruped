@@ -15,7 +15,7 @@ class Leg : public LinkLegModel
     void Calculate(double theta, double theta_d, double theta_dd, double beta, double beta_d, double beta_dd);
     Eigen::Vector3d RimCentorVelocity(Eigen::Vector3d v, Eigen::Vector3d w, RIM rim);
     void PointContact(RIM rim, double alpha=0);
-    void PointVelocity(Eigen::Vector3d v, Eigen::Vector3d w, RIM rim, double alpha=0);
+    void PointVelocity(Eigen::Vector3d v, Eigen::Vector3d w, RIM rim, double alpha=0, bool inbody_coord=true);
     Eigen::Vector3d RollVelocity(Eigen::Vector3d w, RIM rim, double alpha=0);
     double beta = 0;
     double beta_d = 0;
