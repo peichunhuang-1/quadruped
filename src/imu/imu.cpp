@@ -38,7 +38,7 @@ void cb(sensor_msg::SensorRequest request, sensor_msg::SensorReply &reply) {
 int main() {
     imu = std::make_shared<CX5_AHRS>("/dev/ttyACM0", 921600, 500, 500);
     core::NodeHandler nh;
-    core::Rate rate(800);
+    core::Rate rate(500);
     core::Publisher<sensor_msg::IMU> &pub = nh.advertise<sensor_msg::IMU>("imu");
     core::ServiceServer<sensor_msg::SensorRequest, sensor_msg::SensorReply> &srv = nh.serviceServer<sensor_msg::SensorRequest, sensor_msg::SensorReply>("imu", cb);
     std::thread imu_thread = std::thread(
@@ -53,8 +53,16 @@ int main() {
     Eigen::Quaternionf orientation;
     int seq = 0;
     while (1) {
+        imu->get(acceleration, twist, orientation);
+        if (orientation.norm() >= 1e-2) {
+            imu->calibrate(1000, true);
+            break;
+        }
+        rate.sleep();
+    }
+    while (1) {
         cb_lock.lock();
-        if (mode == sensor_msg::SENSOR){
+        // if (mode == sensor_msg::SENSOR){
             seq ++;
             imu->get(acceleration, twist, orientation);
             timeval currentTime;
@@ -73,7 +81,8 @@ int main() {
             imu_msg.mutable_orientation()->set_z(orientation.z());
             imu_msg.mutable_orientation()->set_w(orientation.w());
             pub.publish(imu_msg);
-        }
+        // }
+        // std::cout << orientation.x() << "\t" << orientation.y() << "\t" << orientation.z() << "\t" << orientation.w() << "\n";
         cb_lock.unlock();
         rate.sleep();
     }

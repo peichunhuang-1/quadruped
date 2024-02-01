@@ -12,6 +12,14 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
+option(CMAKE_PREFIX_PATH "path you install core packages" ${HOME}/.local)
+option(BUILD_WITH_ROS "to cooperate with ROS" OFF)
+
+if (BUILD_WITH_ROS)
+  catkin_package()
+  include_directories(${catkin_INCLUDE_DIRS})
+endif()
+
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(mip REQUIRED NO_MODULE)
 find_package(yaml-cpp REQUIRED)

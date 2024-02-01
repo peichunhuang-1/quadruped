@@ -9,7 +9,9 @@ pushd build
 ./FSM_node_webot &
 sleep .1
 ./FSM_listen_node_webot &
-sleep .1
+sleep 1
+# ./state_estimation_webot &
+# sleep .1
 popd
 pushd ~/Desktop/quadruped/js/control_panel
 node quadruped.js &

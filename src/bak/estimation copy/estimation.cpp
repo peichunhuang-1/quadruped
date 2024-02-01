@@ -2,16 +2,32 @@
 #include "csv_reader.hpp"
 #include "ObservationModel.hpp"
 #include "Optimizer.hpp"
+#include <random>
+template<size_t n>
+Eigen::Vector<double, n> random_vector() {
+    std::random_device rd;
+    std::mt19937 gen(rd());  //here you could also set a seed
+    std::uniform_real_distribution<double> dis(-1, 1);
+    Eigen::Vector<double, n> V = Eigen::Vector<double, n>().NullaryExpr([&](){return dis(gen);});
+    return V;
+}
+
+double random_number() {
+    std::random_device rd;
+    std::mt19937 gen(rd());  //here you could also set a seed
+    std::uniform_real_distribution<double> dis(-1, 1);
+    return dis(gen);
+}
 
 int main(int argc, char* argv[]) {
     std::string filenumber = std::string(argv[1]);
     std::string filename = "data/data" + filenumber;
     DataProcessor::DataFrame df =  DataProcessor::read_csv(filename+".csv");
     int n = df.row;
-    LegVelocityEstimation lf_leg(Eigen::Vector3d(0.2, 0.15, 0), Eigen::Vector3d(0.2 , 0.08, 0), 0.1, 0.011, 0.005);
-    LegVelocityEstimation rf_leg(Eigen::Vector3d(0.2, -0.15, 0), Eigen::Vector3d(0.2 ,-0.08, 0), 0.1, 0.011, 0.005);
-    LegVelocityEstimation rh_leg(Eigen::Vector3d(-0.2, -0.15, 0), Eigen::Vector3d(-0.2 ,-0.08, 0), 0.1, 0.011, 0.005);
-    LegVelocityEstimation lh_leg(Eigen::Vector3d(-0.2, 0.15, 0), Eigen::Vector3d(-0.2 ,0.08, 0), 0.1, 0.011, 0.005);
+    LegVelocityEstimation lf_leg(Eigen::Vector3d(0.2, 0.15, 0), Eigen::Vector3d(0.2 , 0.08, 0), 0.1, 0.01, 0.005);
+    LegVelocityEstimation rf_leg(Eigen::Vector3d(0.2, -0.15, 0), Eigen::Vector3d(0.2 ,-0.08, 0), 0.1, 0.01, 0.005);
+    LegVelocityEstimation rh_leg(Eigen::Vector3d(-0.2, -0.15, 0), Eigen::Vector3d(-0.2 ,-0.08, 0), 0.1, 0.01, 0.005);
+    LegVelocityEstimation lh_leg(Eigen::Vector3d(-0.2, 0.15, 0), Eigen::Vector3d(-0.2 ,0.08, 0), 0.1, 0.01, 0.005);
     Eigen::MatrixXd estimate_state = Eigen::MatrixXd::Zero(n, 36);
     Eigen::Vector3d true_value_estimate;
     int counter = 0;
@@ -22,7 +38,7 @@ int main(int argc, char* argv[]) {
     double minf = 0;
     ContactMap cm;
     for (int i = 1; i < n - 1; i++) {
-        bool update = counter % 5 == 0? true: false;
+        bool update = counter % 20 == 0? true: false;
         // std::cout << i << "\n";
         ENCODER_DATA elf = {
             df.iloc("lf.beta", i),
@@ -49,28 +65,28 @@ int main(int argc, char* argv[]) {
             df.iloc("lh.theta_d", i),
         };
 
-        double alpha_l = atan2((df.iloc("lf.dist", i) - df.iloc("lh.dist", i)) , 0.4);
-        double alpha_r = atan2((df.iloc("rf.dist", i) - df.iloc("rh.dist", i)) , 0.4);
+        double alpha_l = atan2((df.iloc("lf.dist", i) + 1e-3 * random_number() - df.iloc("lh.dist", i) - 1e-3 * random_number()) , 0.4);
+        double alpha_r = atan2((df.iloc("rf.dist", i) + 1e-3 * random_number() - df.iloc("rh.dist", i) - 1e-3 * random_number()) , 0.4);
         DST_DATA dlf = {
-            df.iloc("lf.dist", i),
+            df.iloc("lf.dist", i) + 1e-3 * random_number(),
             alpha_l
         };
         DST_DATA drf = {
-            df.iloc("rf.dist", i),
+            df.iloc("rf.dist", i) + 1e-3 * random_number(),
             alpha_r
         };
         DST_DATA drh = {
-            df.iloc("rh.dist", i),
+            df.iloc("rh.dist", i) + 1e-3 * random_number(),
             alpha_r
         };
         DST_DATA dlh = {
-            df.iloc("lh.dist", i),
+            df.iloc("lh.dist", i) + 1e-3 * random_number(),
             alpha_l
         };
         IMU_DATA imu = {
-            Eigen::Vector3d(df.iloc("a.x", i), df.iloc("a.y", i), df.iloc("a.z", i)),
-            Eigen::Vector3d(df.iloc("w.x", i), df.iloc("w.y", i), df.iloc("w.z", i)),
-            Eigen::Vector4d(df.iloc("q.x", i), df.iloc("q.y", i), df.iloc("q.z", i), df.iloc("q.w", i))
+            Eigen::Vector3d(df.iloc("a.x", i), df.iloc("a.y", i), df.iloc("a.z", i)) + 3e-2 * random_vector<3>(),
+            Eigen::Vector3d(df.iloc("w.x", i), df.iloc("w.y", i), df.iloc("w.z", i)) + 2e-2 * random_vector<3>(),
+            Eigen::Vector4d(df.iloc("q.x", i), df.iloc("q.y", i), df.iloc("q.z", i), df.iloc("q.w", i)) + 3e-4 * random_vector<4>()
         };
 
         
@@ -101,10 +117,10 @@ int main(int argc, char* argv[]) {
         estimate_state.row(i).segment(0, 4) = Eigen::Vector4d(u[3], u[4], u[5], u[6]);
         estimate_state.row(i).segment(4, 4) = Eigen::Vector4d(df.iloc("lf.contact", i), df.iloc("rf.contact", i), df.iloc("rh.contact", i), df.iloc("lh.contact", i));
         estimate_state.row(i).segment(8, 4) = fopt_p.weights;
-        estimate_state.row(i).segment(12, 3) = lf_leg.leg.contact_point;
-        estimate_state.row(i).segment(15, 3) = rf_v.predicted_velocity;
-        estimate_state.row(i).segment(18, 3) = rh_v.predicted_velocity;
-        estimate_state.row(i).segment(21, 3) = lh_v.predicted_velocity;
+        estimate_state.row(i).segment(12, 3) = lf_leg.g.point;
+        estimate_state.row(i).segment(15, 3) = rf_leg.g.point;
+        estimate_state.row(i).segment(18, 3) = rh_leg.g.point;
+        estimate_state.row(i).segment(21, 3) = lh_leg.g.point;
 
         estimate_state.row(i).segment(24, 3) = Eigen::Vector3d(df.iloc("v.x", i), df.iloc("v.y", i), df.iloc("v.z", i));
         estimate_state.row(i).segment(27, 3) = Eigen::Vector3d(u[0], u[1], u[2]);

@@ -62,6 +62,41 @@ Eigen::Vector3d Leg::RimCentorVelocity(Eigen::Vector3d v, Eigen::Vector3d w, RIM
     }
 }
 
+Eigen::Vector3d Leg::RimCentorPosition(RIM rim) {
+    switch (rim) {
+        case G_POINT:
+        {
+            return this->offset + Eigen::Vector3d(this->G.imag(), 0, this->G.real());
+        break;
+        }
+        case UPPER_RIM_R:
+        {
+            return  this->offset + Eigen::Vector3d(this->O1.imag(), 0, this->O1.real());
+        break;
+        }
+        case LOWER_RIM_R:
+        {
+            return this->offset + Eigen::Vector3d(this->O2.imag(), 0, this->O2.real());
+        break;
+        }
+        case LOWER_RIM_L:
+        {
+            return this->offset + Eigen::Vector3d(this->O2_.imag(), 0, this->O2_.real());
+        break;
+        }
+        case UPPER_RIM_L:
+        {
+            return this->offset + Eigen::Vector3d(this->O1_.imag(), 0, this->O1_.real());
+        break;
+        }
+        default:
+        {
+            return this->offset;
+        }
+        break;
+    }
+}
+
 void Leg::PointContact(RIM rim, double alpha) {
     double rim_radius = rim == G_POINT? this->r : this->r + this->R;
     std::complex<double> rim_p = std::polar(rim_radius, M_PI + alpha);
@@ -146,6 +181,54 @@ void Leg::PointVelocity(Eigen::Vector3d v, Eigen::Vector3d w, RIM rim, double al
         std::complex<double> tangent_vec = std::polar(1., alpha + M_PI_2);
         this->contact_velocity = Eigen::Vector3d(this->contact_velocity.dot(Eigen::Vector3d(tangent_vec.imag(), 0, tangent_vec.real())), this->contact_velocity(1), this->contact_velocity.dot(Eigen::Vector3d(normal_vec.imag(), 0, normal_vec.real())));
     }
+}
+
+double Leg::RimRoll(RIM rim) {
+    if (this->offset(1) < 0) {
+        link_w = O2_w_; // right side leg, left side lower rim
+        link_w_d = O2_w_d_;
+    }
+    else {
+        link_w = O2_w;
+        link_w_d = O2_w_d_;
+    }
+    switch (rim) {
+        case G_POINT:
+        {
+        break;
+        }
+        case UPPER_RIM_R:
+        {
+            link_w = O1_w;
+            link_w_d = O1_w_d;
+        break;
+        }
+        case LOWER_RIM_R:
+        {
+            link_w = O2_w;
+            link_w_d = O2_w_d;
+        break;
+        }
+        case LOWER_RIM_L:
+        {
+            link_w = O2_w_;
+            link_w_d = O2_w_d_;
+        break;
+        }
+        case UPPER_RIM_L:
+        {
+            link_w = O1_w_;
+            link_w_d = O1_w_d_;
+        break;
+        }
+        default:
+        {
+            link_w = 0;
+            link_w_d = 0;
+        }
+        break;
+    }
+    return link_w;
 }
 
 Eigen::Vector3d Leg::RollVelocity(Eigen::Vector3d w, RIM rim, double alpha) {

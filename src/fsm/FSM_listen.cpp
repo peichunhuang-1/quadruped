@@ -63,7 +63,7 @@ int main()
             // file << (lf_contact - centroid)(0) - 0.2 << "," << (rf_contact - centroid)(0) - 0.2 << "," << (rh_contact - centroid)(0) + 0.2 << "," << (lh_contact - centroid)(0) + 0.2 << "\n";
             motor_msg::MotorStamped motor_data;
             motor_msg::Motor lfr, lfl, rfr, rfl, rhr, rhl, lhr, lhl;
-            std::cout << lf_motors.second << "\n" << lf_motors.first << "\n";
+            // std::cout << lf_motors.second << "\n" << lf_motors.first << "\n";
             lfr.set_angle(-lf_motors.second); 
             lfr.set_ki(0);
             lfr.set_kp(90);

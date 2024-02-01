@@ -10,6 +10,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include "NodeHandler.h"
+#include "math.h"
 
 using namespace mip;  
 
@@ -44,6 +45,9 @@ class CX5_AHRS {
             utils = assign_serial(port, baud);
             sensor_sample_rate = _sensor_sample_rate;
             filter_sample_rate = _filter_sample_rate;
+            acceleration_bias = Eigen::Vector3f(0, 0, 0);
+            twist_bias = Eigen::Vector3f(0, 0, 0);
+            attitude_bias = Eigen::Quaternionf(1, 0, 0, 0);
         }
         void start() {
             std::unique_ptr<DeviceInterface>& device = utils->device;
@@ -78,11 +82,12 @@ class CX5_AHRS {
                 { data_filter::DATA_FILTER_TIMESTAMP, filter_decimation },
                 { data_filter::DATA_FILTER_STATUS,    filter_decimation },
                 { data_filter::DATA_ATT_QUATERNION , filter_decimation },
-                { data_filter::DATA_ATT_UNCERTAINTY_QUATERNION, filter_decimation}
+                { data_filter::DATA_ATT_UNCERTAINTY_QUATERNION, filter_decimation},
             }};
             if(commands_3dm::writeFilterMessageFormat(*device, filter_descriptors.size(), filter_descriptors.data()) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not set filter message format!");
-
+            // if(commands_filter::writeHeadingSource(*device, commands_filter::HeadingSource::Source::MAG) != CmdResult::ACK_OK)
+            //     exit_gracefully("ERROR: Could not set filter heading update control!");
             if(commands_filter::writeAutoInitControl(*device, 1) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not set filter autoinit control!");
             if(commands_filter::reset(*device) != CmdResult::ACK_OK)
@@ -114,7 +119,8 @@ class CX5_AHRS {
                 _imu_mutex.unlock();
             }
         }
-        void calibrate(int block_time_ms) {
+
+        void calibrate(int block_time_ms, bool calibrate_gravity = false) {
             Eigen::Vector3f accum_accel(0, 0, 0);
             Eigen::Vector3f accum_twist(0, 0, 0);
             Eigen::Vector4f accum_attitude(0, 0, 0, 0); // xyzw
@@ -132,8 +138,10 @@ class CX5_AHRS {
             twist_bias = accum_twist / (float) block_time_ms;
             Eigen::Quaternionf attitude_intial = Eigen::Quaternionf(accum_attitude / (float) block_time_ms);
             float heading = attitude_intial.toRotationMatrix().eulerAngles(0, 1, 2)[2];
-            attitude_bias = Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) 
-                            * Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) 
+            float roll = calibrate_gravity? attitude_intial.toRotationMatrix().eulerAngles(0, 1, 2)[0] : 0;
+            float pitch = calibrate_gravity?  attitude_intial.toRotationMatrix().eulerAngles(0, 1, 2)[1] : 0;
+            attitude_bias = Eigen::AngleAxisf(roll, Eigen::Vector3f::UnitX()) 
+                            * Eigen::AngleAxisf(pitch, Eigen::Vector3f::UnitY()) 
                             * Eigen::AngleAxisf(heading, Eigen::Vector3f::UnitZ());
             _imu_mutex.unlock();
         }

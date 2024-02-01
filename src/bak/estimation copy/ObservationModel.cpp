@@ -310,7 +310,7 @@ STATE LegVelocityEstimation::calculate(IMU_DATA imu, ENCODER_DATA m, DST_DATA d,
         state = {
             states.back().predicted_velocity + dv, 
             contact_beta,
-            states.back().covariance + cov,
+            states.back().covariance + durations * cov,
         };
         states.push_back(state);
     }

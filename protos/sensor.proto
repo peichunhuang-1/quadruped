@@ -17,6 +17,11 @@ message Odometry {
     geometry_msg.TwistWithCovariance twist = 3;
 }
 
+message Lidar {
+    std_msg.Header header = 1;
+    repeated double dist = 2;
+}
+
 enum SensorMode {
     REST=0;
     CALIBRATION=1;

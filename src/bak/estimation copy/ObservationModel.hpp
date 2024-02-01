@@ -96,7 +96,7 @@ class BodyEstimation {
     public:
         BodyEstimation(LegVelocityEstimation *lf, LegVelocityEstimation *rf, LegVelocityEstimation *rh, LegVelocityEstimation *lh, Eigen::Vector3d v_init) {
             current_position = Eigen::Vector3d(0, 0, 0.11);
-            weights = Eigen::Vector4d(1, 1, 1, 1);
+            weights = Eigen::Vector4d(.5, .5, .5, .5);
             legs.push_back(lf);
             legs.push_back(rf);
             legs.push_back(rh);
@@ -111,12 +111,12 @@ class BodyEstimation {
             Eigen::Matrix3d rot = quat.toRotationMatrix();
             current_position += velocity * legs[0]->durations + 0.5 * legs[0]->durations * legs[0]->durations * rot * legs[0]->imus.back().a;
             prediction_velocity = velocity + legs[0]->durations * rot * legs[0]->imus.back().a;
-            prediction_velocity_cov = velocity_cov + legs[0]->imu_covariance(legs[0]->imus.back());
+            prediction_velocity_cov = velocity_cov + legs[0]->durations * legs[0]->imu_covariance(legs[0]->imus.back());
         }
         void update_weight(bool update) {
             for (int i = 0; i < 4; i++) weights(i) = legs[i]->weight(current_position, update, sigma);
         }
-        double sigma = 0.05;
+        double sigma = 0.01;
         std::vector<LegVelocityEstimation *> legs;
         Eigen::Vector4d weights;
         Eigen::Vector3d current_position;
