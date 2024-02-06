@@ -7,6 +7,7 @@ enum MOTORMODE {
     HALL_CALIBRATE=1;
     MOTOR_MODE=2;
     SET_ZERO=3;
+    IMPEDANCE=4;
 }
 
 message PowerBoardStamped {

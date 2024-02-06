@@ -1,3 +1,5 @@
 add_library(LinkLegModel LinkLegModel.cpp)
 add_library(LegModel Leg.cpp)
 target_link_libraries(LegModel Eigen3::Eigen LinkLegModel)
+add_executable(quick_test quicktest.cpp)
+target_link_libraries(quick_test Eigen3::Eigen LegModel LinkLegModel)

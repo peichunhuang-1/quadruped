@@ -77,7 +77,7 @@ ws.on('message', function(message) {
       steplength : data.steplength
     });
     power_cmd_clt.send({
-      digital: {'digital': data.digital, 'signal': data.signal, 'power': data.power, 'vicon_trigger': data.vicon_trigger, 'orin_trigger': data.orin_trigger}, 
+      digital: {'digital': data.digital, 'signal': data.signal, 'power': data.power, 'vicon_trigger': data.vicon_trigger, 'orin_trigger': data.orin_trigger, 'clean_error': true}, 
       analog: {},
       mode: data.mode
     })

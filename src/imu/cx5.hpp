@@ -84,10 +84,12 @@ class CX5_AHRS {
                 { data_filter::DATA_ATT_QUATERNION , filter_decimation },
                 { data_filter::DATA_ATT_UNCERTAINTY_QUATERNION, filter_decimation},
             }};
+
             if(commands_3dm::writeFilterMessageFormat(*device, filter_descriptors.size(), filter_descriptors.data()) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not set filter message format!");
-            // if(commands_filter::writeHeadingSource(*device, commands_filter::HeadingSource::Source::MAG) != CmdResult::ACK_OK)
+            // if(commands_filter::writeHeadingSource(*device, commands_filter::HeadingSource::Source::NONE) != CmdResult::ACK_OK)
             //     exit_gracefully("ERROR: Could not set filter heading update control!");
+            
             if(commands_filter::writeAutoInitControl(*device, 1) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not set filter autoinit control!");
             if(commands_filter::reset(*device) != CmdResult::ACK_OK)
