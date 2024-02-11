@@ -37,6 +37,11 @@ void ground::predict(Eigen::Vector3d dR, double dz) {
     position = position + Eigen::Vector3d(0, 0, dz);
 }
 
+void ground::copyto(ground &copy_to_this) {
+    copy_to_this.orient = orient;
+    copy_to_this.position = position;
+}
+
 lidar::lidar(Eigen::Vector3d offset_) : offset(offset_) {}
 
 Eigen::Vector3d lidar::measured_point(double dist) {
@@ -54,39 +59,55 @@ ground lidar::body_frame_ground (lidar a, lidar b) {
     return ground(v_normal, measured);
 }
 
-leg_states::leg_states(Leg &model) : leg(model) {}
+leg_states::leg_states(std::shared_ptr<Leg> &model) : leg(model) {}
+
+void leg_states::init(Eigen::Vector3d p, Eigen::Matrix3d R) {
+    predicted_contact_points[UPPER_RIM_L] = p + R * rim_center_points[UPPER_RIM_L];
+    predicted_contact_points[LOWER_RIM_L] = p + R * rim_center_points[LOWER_RIM_L];
+    predicted_contact_points[UPPER_RIM_R] = p + R * rim_center_points[UPPER_RIM_R];
+    predicted_contact_points[LOWER_RIM_R] = p + R * rim_center_points[LOWER_RIM_R];
+    predicted_contact_points[G_POINT] = p + R * rim_center_points[G_POINT];
+}
 
 void leg_states::calculate(double theta, double theta_d, double beta, double beta_d, Eigen::Vector3d w) {
     // calculate leg states
-    this->leg.Calculate(theta, theta_d, 0, beta, beta_d, 0) ;
-    rim_center_points[UPPER_RIM_L] = this->leg.RimCentorPosition(UPPER_RIM_L);
-    rim_center_points[LOWER_RIM_L] = this->leg.RimCentorPosition(LOWER_RIM_L);
-    rim_center_points[UPPER_RIM_R] = this->leg.RimCentorPosition(UPPER_RIM_R);
-    rim_center_points[LOWER_RIM_R] = this->leg.RimCentorPosition(LOWER_RIM_R);
-    rim_center_points[G_POINT] = this->leg.RimCentorPosition(G_POINT);
+    this->leg->Calculate(theta, theta_d, 0, beta, beta_d, 0) ;
+    rim_center_points[UPPER_RIM_L] = this->leg->RimCentorPosition(UPPER_RIM_L);
+    rim_center_points[LOWER_RIM_L] = this->leg->RimCentorPosition(LOWER_RIM_L);
+    rim_center_points[UPPER_RIM_R] = this->leg->RimCentorPosition(UPPER_RIM_R);
+    rim_center_points[LOWER_RIM_R] = this->leg->RimCentorPosition(LOWER_RIM_R);
+    rim_center_points[G_POINT] = this->leg->RimCentorPosition(G_POINT);
 
     Eigen::Vector3d v0(0, 0, 0);
-    rim_center_velocities[UPPER_RIM_L] = this->leg.RimCentorVelocity(v0, w, UPPER_RIM_L);
-    rim_center_velocities[LOWER_RIM_L] = this->leg.RimCentorVelocity(v0, w, LOWER_RIM_L);
-    rim_center_velocities[UPPER_RIM_R] = this->leg.RimCentorVelocity(v0, w, UPPER_RIM_R);
-    rim_center_velocities[LOWER_RIM_R] = this->leg.RimCentorVelocity(v0, w, LOWER_RIM_R);
-    rim_center_velocities[G_POINT] = this->leg.RimCentorVelocity(v0, w, G_POINT);
+    rim_center_velocities[UPPER_RIM_L] = this->leg->RimCentorVelocity(v0, w, UPPER_RIM_L);
+    rim_center_velocities[LOWER_RIM_L] = this->leg->RimCentorVelocity(v0, w, LOWER_RIM_L);
+    rim_center_velocities[UPPER_RIM_R] = this->leg->RimCentorVelocity(v0, w, UPPER_RIM_R);
+    rim_center_velocities[LOWER_RIM_R] = this->leg->RimCentorVelocity(v0, w, LOWER_RIM_R);
+    rim_center_velocities[G_POINT] = this->leg->RimCentorVelocity(v0, w, G_POINT);
 
-    rim_center_omega[UPPER_RIM_L] = this->leg.RimRoll(UPPER_RIM_L);
-    rim_center_omega[LOWER_RIM_L] = this->leg.RimRoll(LOWER_RIM_L);
-    rim_center_omega[UPPER_RIM_R] = this->leg.RimRoll(UPPER_RIM_R);
-    rim_center_omega[LOWER_RIM_R] = this->leg.RimRoll(LOWER_RIM_R);
-    rim_center_omega[G_POINT] = this->leg.RimRoll(G_POINT);
+    rim_center_omega[UPPER_RIM_L] = this->leg->RimRoll(UPPER_RIM_L);
+    rim_center_omega[LOWER_RIM_L] = this->leg->RimRoll(LOWER_RIM_L);
+    rim_center_omega[UPPER_RIM_R] = this->leg->RimRoll(UPPER_RIM_R);
+    rim_center_omega[LOWER_RIM_R] = this->leg->RimRoll(LOWER_RIM_R);
+    rim_center_omega[G_POINT] = this->leg->RimRoll(G_POINT);
 }
 
 void leg_states::predict(Eigen::Matrix3d R, ground gnd, double dt) {
     // predict leg contact when in contact phase
-    double wheel_r = this->leg.Radius() + this->leg.radius();
+    double wheel_r = this->leg->Radius() + this->leg->radius();
     predicted_contact_points[UPPER_RIM_L] =  predicted_contact_points[UPPER_RIM_L] + dt * wheel_r * (R * Eigen::Vector3d(0, rim_center_omega[UPPER_RIM_L], 0)).cross(gnd.orient) ;
     predicted_contact_points[LOWER_RIM_L] = predicted_contact_points[LOWER_RIM_L] + dt * wheel_r * (R * Eigen::Vector3d(0, rim_center_omega[LOWER_RIM_L], 0)).cross(gnd.orient) ;
     predicted_contact_points[UPPER_RIM_R] = predicted_contact_points[UPPER_RIM_R] + dt * wheel_r * (R * Eigen::Vector3d(0, rim_center_omega[UPPER_RIM_R], 0)).cross(gnd.orient) ;
     predicted_contact_points[LOWER_RIM_R] = predicted_contact_points[LOWER_RIM_R] + dt * wheel_r * (R * Eigen::Vector3d(0, rim_center_omega[LOWER_RIM_R], 0)).cross(gnd.orient) ;
-    predicted_contact_points[G_POINT] = predicted_contact_points[G_POINT] + dt * this->leg.radius() * (R * Eigen::Vector3d(0, rim_center_omega[G_POINT], 0)).cross(gnd.orient);
+    predicted_contact_points[G_POINT] = predicted_contact_points[G_POINT] + dt * this->leg->radius() * (R * Eigen::Vector3d(0, rim_center_omega[G_POINT], 0)).cross(gnd.orient);
+}
+
+void leg_states::copyto(leg_states &copy_to_this) {
+    copy_to_this.predicted_contact_points = predicted_contact_points;
+    copy_to_this.rim_center_velocities = rim_center_velocities;
+    copy_to_this.rim_center_omega = rim_center_omega;
+    copy_to_this.rim_center_points = rim_center_points;
+    copy_to_this.rim_contact = rim_contact;
 }
 
 void leg_states::assign_contact_point(Eigen::Vector3d p, Eigen::Matrix3d R, RIM rim) {
@@ -109,73 +130,102 @@ Eigen::Vector3d leg_states::lookup_predicted_contact_point(RIM rim) {
 }
 
 states::states(Eigen::Vector3d p_, Eigen::Vector3d v_, 
-leg_states &lf_, leg_states &rf_, leg_states &rh_, leg_states &lh_, 
-lidar &Llf_, lidar &Lrf_, lidar &Lrh_, lidar &Llh_,
-ground &Glf_, ground &Grf_, ground &Grh_, ground &Glh_) : p(p_), v(v_), 
+std::shared_ptr<leg_states> &lf_, std::shared_ptr<leg_states> &rf_, std::shared_ptr<leg_states> &rh_, std::shared_ptr<leg_states> &lh_, 
+std::shared_ptr<lidar> &Llf_, std::shared_ptr<lidar> &Lrf_, std::shared_ptr<lidar> &Lrh_, std::shared_ptr<lidar> &Llh_,
+std::shared_ptr<ground> &Glf_, std::shared_ptr<ground> &Grf_, std::shared_ptr<ground> &Grh_, std::shared_ptr<ground> &Glh_) : p(p_), v(v_), 
 lf(lf_), rf(rf_), rh(rh_), lh(lh_), 
 Llf(Llf_), Lrf(Lrf_), Lrh(Lrh_), Llh(Llh_),
 Glf(Glf_), Grf(Grf_), Grh(Grh_), Glh(Glh_) {
-    
+    Rotation = Eigen::Matrix3d::Identity();
 }
 
-void states::predict(Eigen::Vector3d a, Eigen::Matrix3d R, Eigen::Vector3d dba, Eigen::Vector3d dbw, double dt) {
+void states::predict(Eigen::Vector3d a, Eigen::Vector3d w, Eigen::Matrix3d R, Eigen::Vector3d dba, Eigen::Vector3d dbw, double dt) {
     ba += dba;
     bw += dbw;
-    p = p + v * dt + R * (a - ba) * dt * dt * 0.5;
-    v = v + R * (a - ba) * dt;
-    lf.predict(R, Glf, dt);
-    rf.predict(R, Grf, dt);
-    rh.predict(R, Grh, dt);
-    lh.predict(R, Glh, dt);
+    p = p + v * dt + Rotation * (a - ba) * dt * dt * 0.5;
+    v = v + Rotation * (a - ba) * dt;
+    lf->predict(Rotation, *Glf, dt);
+    rf->predict(Rotation, *Grf, dt);
+    rh->predict(Rotation, *Grh, dt);
+    lh->predict(Rotation, *Glh, dt);
+    Rotation = R;
+    omega = w - bw;
 }
 
-double states::validate_leg(Eigen::Vector3d p, Eigen::Matrix3d R, bool contact, bool slip, leg_states &leg, ground g) {
+double states::validate_leg(Eigen::Vector3d p, Eigen::Matrix3d R, bool contact, bool slip, std::shared_ptr<leg_states> &leg, ground g) {
     // position and contact point differ (only valid when contact and no slip)
     // gnd k and gnd k+1 (when update ground)
     // gnd and contact point distance (valid when swing, should be large as possible)
     // position and contact point differ with larger covariance when contact but slip
     double weight;
     if (contact) { 
-        Eigen::DiagonalMatrix<double, 3, 3> p_covariance = slip?
-        Eigen::DiagonalMatrix<double, 3, 3>(2.5e-5, 2.5e-5, 2.5e-5): Eigen::DiagonalMatrix<double, 3, 3>(1e-6, 1e-6, 1e-6) ;
+        Eigen::DiagonalMatrix<double, 4, 4> p_covariance = slip?
+        Eigen::DiagonalMatrix<double, 4, 4>(1e-6, 1e-6, 1e-6, 1e-4): Eigen::DiagonalMatrix<double, 4, 4>(2.5e-7, 2.5e-7, 2.5e-7, 1e-4) ;
         std::vector<double> weights;
         for (int rim = 1; rim <= 5; rim ++ ) {
-            Eigen::Vector3d center_point = leg.lookup_point(RIM(rim));
+            Eigen::Vector3d center_point = leg->lookup_point(RIM(rim));
             Eigen::Vector3d contact_center_point_world_frame = p + R * center_point;
-            Eigen::Vector3d diff = contact_center_point_world_frame - leg.lookup_predicted_contact_point(RIM(rim));
-            weights.push_back(gaussianLikelihood(diff, Eigen::Vector3d(0, 0, 0), p_covariance));
+            Eigen::Vector3d diff = contact_center_point_world_frame - leg->lookup_predicted_contact_point(RIM(rim));
+            double radius = rim == G_POINT? leg->leg->radius() : leg->leg->Radius() + leg->leg->radius();
+            double dist_from_gnd = (p + R * center_point - g.position).dot(g.orient);
+            Eigen::Vector4d g_diff(diff(0), diff(1), diff(2), dist_from_gnd);
+            weights.push_back(gaussianLikelihood(g_diff, Eigen::Vector4d(0, 0, 0, 0), p_covariance));
         }
         auto rim_pointer = std::max_element(weights.begin(), weights.end());
-        RIM rim_contact = RIM(std::distance(weights.begin(), rim_pointer));
+        RIM rim_contact = RIM(std::distance(weights.begin(), rim_pointer) + 1);
+        leg->rim_contact = rim_contact;
         for (int rim = 1; rim <= 5; rim ++ ) {
             if (rim == rim_contact) continue;
-            else leg.assign_contact_point(p, R, RIM(rim));
+            else leg->assign_contact_point(p, R, RIM(rim));
         }
-        weight = *std::max_element(weights.begin(), weights.end());
+        weight = *rim_pointer;
     }
     else {
         // swing phase
         std::vector<double> weights;
         for (int rim = 1; rim <= 5; rim ++ ) {
-            Eigen::Vector3d center_point = leg.lookup_point(RIM(rim));
-            double radius = rim == G_POINT? leg.leg.radius() : leg.leg.Radius() + leg.leg.radius();
+            Eigen::Vector3d center_point = leg->lookup_point(RIM(rim));
+            double radius = rim == G_POINT? leg->leg->radius() : leg->leg->Radius() + leg->leg->radius();
             double dist_from_gnd = (p + R * center_point - g.position).dot(g.orient);
             double center_from_gnd = (p - g.position).dot(g.orient);
-            weights.push_back(relu(dist_from_gnd - radius, center_from_gnd - 0.07, center_from_gnd + 0.061394));
-            leg.assign_contact_point(p, R, RIM(rim));
+            double swing_weight = relu(dist_from_gnd - radius, center_from_gnd - 0.07, center_from_gnd + 0.061394);
+            weights.push_back(swing_weight);
+            leg->assign_contact_point(p, R, RIM(rim));
         }
         weight = *std::max_element(weights.begin(), weights.end());
     }
-
     return weight;
 }
 
-double states::validate_ground(Eigen::Vector3d p, Eigen::Matrix3d R, ground g, lidar l, lidar rl, lidar fh) {
+double states::validate_ground(Eigen::Vector3d p, Eigen::Matrix3d R, ground &g, lidar l, lidar rl, lidar fh) {
     ground new_ground = l.body_frame_ground(rl, fh);
     new_ground = new_ground.coordinate(R, p);
-    Eigen::DiagonalMatrix<double, 2, 2> p_covariance(1e-2, 2.5e-5);
+    Eigen::DiagonalMatrix<double, 2, 2> p_covariance(1e-4, 2.5e-5);
     Eigen::Vector2d diff(acos(new_ground.orient.dot(g.orient)) ,new_ground.position(2) - g.position(2));
+    g.position(0) = new_ground.position(0);
+    g.position(1) = new_ground.position(1);
     return gaussianLikelihood(diff, Eigen::Vector2d(0, 0), p_covariance);
 }
 
+bool states::condition() {
+    return contact_states & contact_condition ? true: false;
+}
+
+void states::copyto(states &copy_to_this) {
+    copy_to_this.ba = ba;
+    copy_to_this.bw = bw;
+    copy_to_this.omega = omega;
+    copy_to_this.p = p;
+    copy_to_this.v = v;
+    copy_to_this.contact_states = contact_states;
+    copy_to_this.Rotation = Rotation;
+    this->lf->copyto(*copy_to_this.lf);
+    this->rf->copyto(*copy_to_this.rf);
+    this->rh->copyto(*copy_to_this.rh);
+    this->lh->copyto(*copy_to_this.lh);
+    this->Glf->copyto(*copy_to_this.Glf);
+    this->Grf->copyto(*copy_to_this.Grf);
+    this->Grh->copyto(*copy_to_this.Grh);
+    this->Glh->copyto(*copy_to_this.Glh);
+}
 }

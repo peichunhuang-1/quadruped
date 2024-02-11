@@ -1,5 +1,10 @@
 find_package(NLopt REQUIRED)
+
 add_library(definition definition.cpp)
 target_link_libraries(definition Eigen3::Eigen)
 add_library(PF ParticleFilter.cpp)
 target_link_libraries(PF definition Eigen3::Eigen)
+
+add_executable(PF_estimator main.cpp)
+
+target_link_libraries(PF_estimator PF definition Eigen3::Eigen LegModel LinkLegModel )

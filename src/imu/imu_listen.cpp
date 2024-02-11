@@ -23,8 +23,8 @@ int main() {
     while(1) { 
         core::spinOnce();
         mutex_.lock();
-        std::cout << imu_info.orientation().x() << "\t" << imu_info.orientation().y() << "\t" << imu_info.orientation().z() << "\t" << imu_info.orientation().w() << "\n";
-        std::cout << imu_info.acceleration().x() << "\t" << imu_info.acceleration().y() << "\t" << imu_info.acceleration().z() << "\n";
+        // std::cout << imu_info.orientation().x() << "\t" << imu_info.orientation().y() << "\t" << imu_info.orientation().z() << "\t" << imu_info.orientation().w() << "\n";
+        // std::cout << imu_info.acceleration().x() << "\t" << imu_info.acceleration().y() << "\t" << imu_info.acceleration().z() << "\n";
         file << imu_info.acceleration().x() << ",";
         file << imu_info.acceleration().y() << ",";
         file << imu_info.acceleration().z() << ",";

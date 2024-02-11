@@ -57,6 +57,7 @@ class CX5_AHRS {
                 exit_gracefully("ERROR: Could not set the device to idle!");
             if(commands_3dm::defaultDeviceSettings(*device) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not load default device settings!");
+
             uint16_t sensor_base_rate;
             if(commands_3dm::imuGetBaseRate(*device, &sensor_base_rate) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not get sensor base rate format!");
@@ -87,13 +88,19 @@ class CX5_AHRS {
 
             if(commands_3dm::writeFilterMessageFormat(*device, filter_descriptors.size(), filter_descriptors.data()) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not set filter message format!");
-            // if(commands_filter::writeHeadingSource(*device, commands_filter::HeadingSource::Source::NONE) != CmdResult::ACK_OK)
-            //     exit_gracefully("ERROR: Could not set filter heading update control!");
-            
+            if(commands_3dm::writeComplementaryFilter(*device, true, false, 10., 1.) != CmdResult::ACK_OK)
+                exit_gracefully("ERROR: Could not set north complement off!");
             if(commands_filter::writeAutoInitControl(*device, 1) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not set filter autoinit control!");
             if(commands_filter::reset(*device) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not reset the filter!");
+
+            bool heading_align = true, gravity_align = true;
+            float heading_time, gravity_time;
+            if(commands_3dm::loadComplementaryFilter(*device) != CmdResult::ACK_OK)
+                exit_gracefully("ERROR: Could not load filter complement!");
+            if(commands_3dm::readComplementaryFilter(*device, &gravity_align, &heading_align, &gravity_time, &heading_time) == CmdResult::ACK_OK)
+                std::cout << "heading algn: " << heading_align << "\n";
             DispatchHandler sensor_data_handlers[2];
             device->registerExtractor(sensor_data_handlers[0], &raw_accel);
             device->registerExtractor(sensor_data_handlers[1], &raw_gyro);
@@ -103,7 +110,7 @@ class CX5_AHRS {
             device->registerExtractor(filter_data_handlers[1], &filter_status);
             device->registerExtractor(filter_data_handlers[2], &raw_attitude);
             device->registerExtractor(filter_data_handlers[3], &attitude_covariance);
-
+            
             if(commands_base::resume(*device) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not resume the device!");
             bool filter_state_ahrs = false;

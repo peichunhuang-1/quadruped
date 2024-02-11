@@ -82,7 +82,7 @@ int main() {
             imu_msg.mutable_orientation()->set_w(orientation.w());
             pub.publish(imu_msg);
         // }
-        std::cout << orientation.x() << "\t" << orientation.y() << "\t" << orientation.z() << "\t" << orientation.w() << "\n";
+        // std::cout << orientation.x() << "\t" << orientation.y() << "\t" << orientation.z() << "\t" << orientation.w() << "\n";
         cb_lock.unlock();
         rate.sleep();
     }
