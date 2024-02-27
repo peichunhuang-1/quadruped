@@ -63,9 +63,10 @@ class CX5_AHRS {
                 exit_gracefully("ERROR: Could not get sensor base rate format!");
 
             const uint16_t sensor_decimation = sensor_base_rate / sensor_sample_rate;
-            std::array<DescriptorRate, 2> sensor_descriptors = {{
+            std::array<DescriptorRate, 3> sensor_descriptors = {{
                 { data_sensor::DATA_ACCEL_SCALED,   sensor_decimation },
-                { data_sensor::DATA_GYRO_SCALED,    sensor_decimation }
+                { data_sensor::DATA_GYRO_SCALED,    sensor_decimation },
+                { data_sensor::DATA_COMP_QUATERNION, sensor_decimation}
             }};
             if(commands_3dm::writeImuMessageFormat(*device, sensor_descriptors.size(), sensor_descriptors.data()) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not set sensor message format!");
@@ -90,25 +91,22 @@ class CX5_AHRS {
                 exit_gracefully("ERROR: Could not set filter message format!");
             if(commands_3dm::writeComplementaryFilter(*device, true, false, 10., 1.) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not set north complement off!");
+            if(commands_filter::writeHeadingSource(*device, commands_filter::HeadingSource::Source::NONE) != CmdResult::ACK_OK)
+                exit_gracefully("ERROR: Could not set filter heading update control!");
             if(commands_filter::writeAutoInitControl(*device, 1) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not set filter autoinit control!");
             if(commands_filter::reset(*device) != CmdResult::ACK_OK)
                 exit_gracefully("ERROR: Could not reset the filter!");
 
-            bool heading_align = true, gravity_align = true;
-            float heading_time, gravity_time;
-            if(commands_3dm::loadComplementaryFilter(*device) != CmdResult::ACK_OK)
-                exit_gracefully("ERROR: Could not load filter complement!");
-            if(commands_3dm::readComplementaryFilter(*device, &gravity_align, &heading_align, &gravity_time, &heading_time) == CmdResult::ACK_OK)
-                std::cout << "heading algn: " << heading_align << "\n";
-            DispatchHandler sensor_data_handlers[2];
+            DispatchHandler sensor_data_handlers[3];
             device->registerExtractor(sensor_data_handlers[0], &raw_accel);
             device->registerExtractor(sensor_data_handlers[1], &raw_gyro);
+            device->registerExtractor(sensor_data_handlers[2], &raw_attitude);
 
             DispatchHandler filter_data_handlers[4];
             device->registerExtractor(filter_data_handlers[0], &filter_time);
             device->registerExtractor(filter_data_handlers[1], &filter_status);
-            device->registerExtractor(filter_data_handlers[2], &raw_attitude);
+            device->registerExtractor(filter_data_handlers[2], &filter_attitude);
             device->registerExtractor(filter_data_handlers[3], &attitude_covariance);
             
             if(commands_base::resume(*device) != CmdResult::ACK_OK)
@@ -116,15 +114,16 @@ class CX5_AHRS {
             bool filter_state_ahrs = false;
             while(1) {
                 device->update();
-                if((!filter_state_ahrs))
-                {
-                    if (filter_status.filter_state == data_filter::FilterMode::AHRS) filter_state_ahrs = true;
-                    else continue;
-                }
+                // if((!filter_state_ahrs))
+                // {
+                //     if (filter_status.filter_state == data_filter::FilterMode::AHRS) filter_state_ahrs = true;
+                //     else continue;
+                // }
                 _imu_mutex.lock();
                 acceleration = Eigen::Vector3f(raw_accel.scaled_accel);
                 twist = Eigen::Vector3f(raw_gyro.scaled_gyro);
                 attitude = Eigen::Quaternionf(raw_attitude.q[0], raw_attitude.q[1], raw_attitude.q[2], raw_attitude.q[3]);
+
                 _imu_mutex.unlock();
             }
         }
@@ -164,7 +163,8 @@ class CX5_AHRS {
     private:
         data_sensor::ScaledGyro raw_gyro;
         data_sensor::ScaledAccel raw_accel;
-        data_filter::AttitudeQuaternion raw_attitude;
+        data_sensor::CompQuaternion raw_attitude;
+        data_filter::AttitudeQuaternion filter_attitude;
         data_filter::Timestamp    filter_time;
         data_filter::Status       filter_status;
         data_filter::QuaternionAttitudeUncertainty attitude_covariance;

@@ -1,5 +1,5 @@
 #include "cpg.hpp"
-
+#include "fstream"
 std::mutex mutex_;
 double zeta = 0.5;
 robot_msg::GAIT gait_type;
@@ -7,6 +7,7 @@ void cpg_command_function(double z, robot_msg::GAIT g) {
     mutex_.lock();
     zeta = z;
     gait_type = g;
+    std::cout << zeta << "\t" << gait_type << "\n";
     mutex_.unlock();
 }
 
@@ -47,9 +48,9 @@ int main(int argc, char* argv[])
     core::Rate rate(1000);
     
     core::ServiceServer<robot_msg::GaitRequest, robot_msg::GaitReply> &srv = 
-    nh.serviceServer<robot_msg::GaitRequest, robot_msg::GaitReply>("cpg/command", cb);
+    nh.serviceServer<robot_msg::GaitRequest, robot_msg::GaitReply>("gait/command", cb);
     core::Publisher<robot_msg::GaitInfo> &pub = nh.advertise<robot_msg::GaitInfo>("cpg/phase");
-
+    std::ofstream file("cpgs.csv");
     while (1)
     {
         mutex_.lock();
@@ -65,7 +66,9 @@ int main(int argc, char* argv[])
         }
         mutex_.unlock();
         pub.publish(phase_data);
+        file << cpg.phase()(0) << "," << cpg.phase()(1) << "," << cpg.phase()(2) << "," << cpg.phase()(3) << "\n";
         rate.sleep();
     }
+    file.close();
     return 0;
 }
