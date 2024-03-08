@@ -51,7 +51,8 @@ namespace estimation_model {
     }
     Eigen::MatrixXd U::noise() {
         Eigen::MatrixXd R = Eigen::MatrixXd::Zero(n * 6, n * 6);
-        for (int i = 0; i < n * 6; i ++) R(i, i) = 1e-4 ;
+        for (int i = 0; i < n * 3; i ++) R(i, i) = 1e-4 ;
+        for (int i = n * 3; i < n * 6; i ++) R(i, i) = 1e-4 ;
         return R;
     }
     Eigen::VectorXd U::u(double dt) {
@@ -65,7 +66,7 @@ namespace estimation_model {
     Eigen::VectorXd U::compensate(double dt) {
         Eigen::Vector3d sum = Eigen::Vector3d(0, 0, 0);
         for (int i = 0; i < n; i ++) {
-            Eigen::Vector3d a =   0.5 * dt * dt * rot[i] * accel[i];
+            Eigen::Vector3d a = 0.5 * dt * dt * rot[i] * accel[i];
             sum += a;
         }
         Eigen::VectorXd compensate; 

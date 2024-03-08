@@ -10,5 +10,5 @@ add_executable(state_kf test_kf.cpp)
 target_link_libraries(state_kf Eigen3::Eigen ${_CORE_LIBRARIES} geometry_proto sensor_proto LegModel LinkLegModel KF motor_proto)
 
 add_executable(state_kf_webot KF_webot.cpp)
-target_link_libraries(state_kf_webot Eigen3::Eigen ${_CORE_LIBRARIES} geometry_proto sensor_proto LegModel LinkLegModel KF motor_proto)
+target_link_libraries(state_kf_webot Eigen3::Eigen ${_CORE_LIBRARIES} geometry_proto sensor_proto LegModel LinkLegModel KF motor_proto robot_proto)
 target_compile_definitions(state_kf_webot PRIVATE -DSIMULATION)

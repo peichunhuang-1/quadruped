@@ -4,7 +4,17 @@
 #include <Eigen/Geometry>
 #include <map>
 #include <queue>
-
+namespace Eigen
+{
+    Matrix3d skew3(Eigen::Vector3d vec)
+    {
+        Eigen::Matrix3d mo; 
+        mo << 0.0, -vec(2), vec(1),
+             vec(2), 0.0, -vec(0), 
+             -vec(1), vec(0), 0.0;
+        return mo;
+    }
+}
 namespace RigidBodyDynamic {
     Eigen::Matrix3d AngleAxisToRotation(Eigen::Vector3d dw) {
         double dtheta = dw.norm();
@@ -15,6 +25,9 @@ namespace RigidBodyDynamic {
 
     struct Joint {
         public:
+            Joint() {}
+            Joint (double x_, double y_, double z_) {position = {x_, y_, z_};}
+            Joint (Eigen::Vector3d p) {position = p;}
             Eigen::Vector3d position = {0, 0, 0};
             double x() {return position(0);}
             double y() {return position(1);}
@@ -47,7 +60,7 @@ namespace RigidBodyDynamic {
     };
 
     void RigidBody::apply_force(std::string joint, Eigen::Vector3d force) {
-        tmp_forces.push(std::pair(joint, force) );
+        tmp_forces.push(std::pair<std::string, Eigen::Vector3d>(joint, force) );
     }
 
     void RigidBody::apply_torque(Eigen::Vector3d torque) {
@@ -65,7 +78,7 @@ namespace RigidBodyDynamic {
             total_force += C * tmp_force.second;
             tmp_forces.pop();
         }
-        while (! tmp_torque.empty()) {
+        while (! tmp_torques.empty()) {
             total_torque += tmp_torques.front();
             tmp_torques.pop();
         }

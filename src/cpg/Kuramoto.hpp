@@ -6,6 +6,24 @@
 #include <iostream>
 
 namespace Kuramoto {
+
+    class SynchronizeController {
+        public:
+            SynchronizeController() ;
+            SynchronizeController(double Kp, double Ki, double Kd, double max = 1e10, double min = -1e10, double windup = 1e10, double winddown = -1e10) ;
+            double output(double err, double dt) ;
+            void clear();
+        private:
+            double p;
+            double i;
+            double d;
+            double i_term;
+            double last_err;
+            double Max;
+            double Min;
+            double up;
+            double down;
+    };
     enum TRANSITION_TYPE {
         FEEDBACK = 0x04,
         FAST = 0x02,
@@ -20,7 +38,7 @@ namespace Kuramoto {
             void omega() ;
             void r() ;
             void dydt(double u, double Ky) ;
-            void dxdt(double dv,TRANSITION_TYPE t) ;
+            void dxdt(double dv,TRANSITION_TYPE t, double dt) ;
 
             void update(double Ky, double f, double dv, double dt, TRANSITION_TYPE t) ;
             void change_param(double alpha_, double beta_, double mu_, double omega_stance_, double omega_swing_, double b_ = 1e10) ;
@@ -41,6 +59,8 @@ namespace Kuramoto {
             double mu;
 
             double b;
+
+            SynchronizeController c;
     };
 
     const Eigen::Matrix4d trot_K() ;

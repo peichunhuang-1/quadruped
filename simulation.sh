@@ -17,10 +17,16 @@ read
 # node quadruped.js &
 # popd
 
-pushd build
-./Kuramoto_test_webot &
-sleep .1
+# pushd build
+# ./Kuramoto_test_webot &
+# sleep .1
+# ./state_kf_webot &
+# sleep .1
+# popd
 
+pushd build
+./my_cpg_test &
+sleep .1
 ./state_kf_webot &
 sleep .1
 popd

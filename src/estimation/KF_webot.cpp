@@ -3,6 +3,7 @@
 #include "csv_reader.hpp"
 #include <random>
 #include "motor.pb.h"
+#include "robot.pb.h"
 #include "NodeHandler.h"
 #include "sensor.pb.h"
 
@@ -83,9 +84,9 @@ int main(int argc, char* argv[]) {
         x(i * 3) = v_init(0);
         x(i * 3 + 1) = v_init(1);
         x(i * 3 + 2) = v_init(2);
-        x((i + j) * 3) = 0;
-        x((i + j) * 3 + 1) = 0;
-        x((i + j) * 3 + 2) = 0;
+        x((i + j) * 3) = 1e-3;
+        x((i + j) * 3 + 1) = 1e-3;
+        x((i + j) * 3 + 2) = 1e-3;
     }
 
     KF filter(j, dt) ;
@@ -109,13 +110,14 @@ int main(int argc, char* argv[]) {
     for (;;) {
         core::spinOnce();
         mutex_.lock();
-        if (motor_data.motors().size() == 8) {
+        robot_msg::State s;
+        if (motor_data.motors().size() == 8 && lidar_data.dist().size() == 4) {
             encoder lf = phiRL_2_thetabeta(motor_data.motors(0).angle(), motor_data.motors(1).angle(), motor_data.motors(0).twist(), motor_data.motors(1).twist());
             encoder rf = phiRL_2_thetabeta(motor_data.motors(2).angle(), motor_data.motors(3).angle(), motor_data.motors(2).twist(), motor_data.motors(3).twist());
             encoder rh = phiRL_2_thetabeta(motor_data.motors(4).angle(), motor_data.motors(5).angle(), motor_data.motors(4).twist(), motor_data.motors(5).twist());
             encoder lh = phiRL_2_thetabeta(motor_data.motors(6).angle(), motor_data.motors(7).angle(), motor_data.motors(6).twist(), motor_data.motors(7).twist());
             
-            Eigen::Vector3d a = a_2.front(); a += 1e-2 * random_vector<3>() + Eigen::Vector3d(1e-2, 1e-2, 1e-2); a_2.pop_front(); a_2.push_back(Eigen::Vector3d(imu_data.acceleration().x(), imu_data.acceleration().y(), imu_data.acceleration().z()));
+            Eigen::Vector3d a = a_2.front(); a += Eigen::Vector3d(1e-3, 1e-3, 1e-3); a_2.pop_front(); a_2.push_back(Eigen::Vector3d(imu_data.acceleration().x(), imu_data.acceleration().y(), imu_data.acceleration().z()));
             Eigen::Quaterniond qk_2 = Eigen::Quaterniond(q_2.front()); q_2.pop_front(); q_2.push_back(Eigen::Vector4d(imu_data.orientation().x(), imu_data.orientation().y(), imu_data.orientation().z(), imu_data.orientation().w()));
             Eigen::Matrix3d R_k2 = qk_2.toRotationMatrix();
             Eigen::Quaterniond q = Eigen::Quaterniond(q_2.back());
@@ -135,13 +137,23 @@ int main(int argc, char* argv[]) {
 
             input.push_data(a, R_k2);
             A = input.StateMatrix(dt);
-            double alpha;
-            if (i % 4) alpha = -100;
-            else alpha = 0;
-            observed_lf.push_data(contact_vector_lf, R, dt, alpha);
-            observed_rf.push_data(contact_vector_rf, R, dt, alpha);
-            observed_rh.push_data(contact_vector_rh, R, dt, alpha);
-            observed_lh.push_data(contact_vector_lh, R, dt, alpha);
+            double alpha_lf, alpha_rf, alpha_rh, alpha_lh;
+            if (i % 4) {
+                alpha_lf = -100;
+                alpha_rf = -100;
+                alpha_rh = -100;
+                alpha_lh = -100;
+            }
+            else {
+                alpha_lf = - atan2(lidar_data.dist(0) - lidar_data.dist(3) , 0.4);
+                alpha_rf = - atan2(lidar_data.dist(1) - lidar_data.dist(2) , 0.4);
+                alpha_rh = - atan2(lidar_data.dist(1) - lidar_data.dist(2) , 0.4);
+                alpha_lh = - atan2(lidar_data.dist(0) - lidar_data.dist(3) , 0.4);
+            }
+            observed_lf.push_data(contact_vector_lf, R, dt, alpha_lf);
+            observed_rf.push_data(contact_vector_rf, R, dt, alpha_rf);
+            observed_rh.push_data(contact_vector_rh, R, dt, alpha_rh);
+            observed_lh.push_data(contact_vector_lh, R, dt, alpha_lh);
 
             z.segment(0, 3) = observed_lf.z(lf_leg, dt);
             z.segment(3, 3) = observed_rf.z(rf_leg, dt);
@@ -175,9 +187,23 @@ int main(int argc, char* argv[]) {
 
             filter.valid(z, Q);
             x = filter.state();
-            file << x.segment(3 * j - 3, 3)(0) << "," << x.segment(3 * j - 3, 3)(1) << "," << x.segment(3 * j - 3, 3)(2) << std::endl;
+            file << x.segment(3 * j - 3, 3)(0) << "," << x.segment(3 * j - 3, 3)(1) << "," << x.segment(3 * j - 3, 3)(2) <<
+            "," << x.segment(6 * j - 3, 3)(0) << "," << x.segment(6 * j - 3, 3)(1) << "," << x.segment(6 * j - 3, 3)(2) << std::endl;
+            auto twist = s.mutable_twist();
+            
+            auto angular = twist->mutable_angular();
+            auto linear = twist->mutable_linear();
+            
+            angular->set_x(imu_data.twist().x());
+            angular->set_y(imu_data.twist().y());
+            angular->set_z(imu_data.twist().z());
+
+            linear->set_x(x.segment(3 * j - 3, 3)(0));
+            linear->set_y(x.segment(3 * j - 3, 3)(1));
+            linear->set_z(x.segment(3 * j - 3, 3)(2));
         }
         mutex_.unlock();
+        state_pub.publish(s);
         i++;
         rate.sleep();
     }

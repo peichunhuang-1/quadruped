@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
     DataProcessor::DataFrame df =  DataProcessor::read_csv(filename+".csv");
     int n = df.row;
     int j = 10;
-    double dt = 0.005;
+    double dt = 0.001;
     Leg lf_leg(Eigen::Vector3d(0.2, 0.15, 0), 0.1, 0.01);
     Leg rf_leg(Eigen::Vector3d(0.2, -0.15, 0), 0.1, 0.01);
     Leg rh_leg(Eigen::Vector3d(-0.2, -0.15, 0), 0.1, 0.01);
@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
         estimate_state.row(i).segment(12, 3) = z.segment(6, 3);
         estimate_state.row(i).segment(15, 3) = z.segment(9, 3);
         estimate_state.row(i).segment(18, 3) = (P.back() - P.front());
-        estimate_state.row(i).segment(21, 3) = x.segment(6 * j - 3, 3);
+        estimate_state.row(i).segment(21, 3) = filter.measurement().segment(0, 3);
         estimate_state.row(i).segment(24, 4) = Eigen::Vector4d(contact_metrice[0], contact_metrice[1], contact_metrice[2], contact_metrice[3]);
         estimate_state.row(i).segment(28, 4) = Eigen::Vector4d(df.iloc("lf.contact", i), df.iloc("rf.contact", i), df.iloc("rh.contact", i), df.iloc("lh.contact", i));
     }
