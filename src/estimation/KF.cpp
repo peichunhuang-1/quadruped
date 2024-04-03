@@ -7,7 +7,7 @@ namespace estimation_model {
             A.block<3, 3>((i - j) * 3, i * 3) = -dt * Eigen::Matrix3d::Identity();
         }
         I = Eigen::MatrixXd::Identity(6 * j, 6 * j);
-        C = Eigen::MatrixXd::Constant(12, j * 6, 0);
+        C = Eigen::MatrixXd::Constant(12 + 6 * (j - 1), j * 6, 0);
         Eigen::Matrix3d dtI = Eigen::Matrix3d::Identity() * dt;
         for (int i = 0; i < j; i++) {
             C.block<3, 3>(0, 3 * i) = dtI ;
@@ -19,11 +19,18 @@ namespace estimation_model {
             C.block<3, 3>(6, 3 * (i + j)) = -dtI * dt * 0.5 ;
             C.block<3, 3>(9, 3 * (i + j)) = -dtI * dt * 0.5 ;
         }
+        for (int i = 0; i < j - 1; i ++) {
+            C.block<3, 3>(i * 3 + 12, i * 3) = -Eigen::Matrix3d::Identity();
+            C.block<3, 3>(i * 3 + 12, i * 3 + 3) = Eigen::Matrix3d::Identity();
+            C.block<3, 3>(i * 3 + 12, (i + j) * 3) = -Eigen::Matrix3d::Identity();
+            C.block<3, 3>((i + j - 1) * 3 + 12, (i + j) * 3) = -Eigen::Matrix3d::Identity();
+            C.block<3, 3>((i + j - 1) * 3 + 12, (i + j) * 3 + 3) = Eigen::Matrix3d::Identity();
+        }
         double epsilon = 1e-8;
         P = epsilon * Eigen::MatrixXd::Identity(6 * j, 6 * j);
         R.resize(6 * j, 6 * j) ;
-        K.resize(6 * j, 12) ;
-        Q.resize(12, 12) ;
+        K.resize(6 * j, 12 + 6 * (j - 1)) ;
+        Q.resize(12 + 6 * (j - 1), 12 + 6 * (j - 1)) ;
         x.resize(6 * j) ;
     }
     void KF::init(Eigen::VectorXd x_init) {
@@ -32,7 +39,7 @@ namespace estimation_model {
     void KF::predict(Eigen::VectorXd u, Eigen::MatrixXd noise) {
         R = noise;
         x = A * x + u;
-        P = P + R;
+        P = A * P * A.transpose() + R;
     }
     void KF::valid(Eigen::VectorXd z, Eigen::MatrixXd noise) {
         Q = noise;
@@ -70,9 +77,11 @@ namespace estimation_model {
             sum += a;
         }
         Eigen::VectorXd compensate; 
-        compensate.resize(12);
+        compensate.resize(12 + 6 * (n - 1));
         for (int i = 0; i < 4; i++)
             compensate.segment(i * 3, 3) = sum;
+        for (int i = 12; i < 12 + 6 * (n - 1); i++) 
+            compensate(i) = 0;
         return compensate;
     }
 
@@ -82,6 +91,26 @@ namespace estimation_model {
             A_.block<3, 3>((i - n) * 3, i * 3) = -dt * rot[i - n];
         }
         return A_;
+    }
+
+    Eigen::MatrixXd U::ObservationMatrix(double dt) {
+        Eigen::MatrixXd C_ = Eigen::MatrixXd::Zero(6 * n - 6, 6 * n);
+        for (int i = 0; i < n - 1; i ++) {
+            C_.block<3, 3>(i * 3, i * 3) = -Eigen::Matrix3d::Identity();
+            C_.block<3, 3>(i * 3, i * 3 + 3) = Eigen::Matrix3d::Identity();
+            C_.block<3, 3>(i * 3, (i + n) * 3) = dt * rot[i+1];
+            C_.block<3, 3>((i + n - 1) * 3, (i + n) * 3) = -Eigen::Matrix3d::Identity();
+            C_.block<3, 3>((i + n - 1) * 3, (i + n) * 3 + 3) = Eigen::Matrix3d::Identity();
+        }
+        return C_;
+    }
+    Eigen::VectorXd U::ObservationVector(double dt) {
+        Eigen::VectorXd v = Eigen::VectorXd::Zero(6 * n - 6);
+        for (int i = 1; i < n; i ++) {
+            Eigen::Vector3d a = dt * rot[i] * accel[i];
+            v.segment((i - 1) * 3, 3) = a;
+        }
+        return v;
     }
 
     void U::push_data(Eigen::Vector3d a, Eigen::Matrix3d R) {
@@ -105,12 +134,15 @@ namespace estimation_model {
         return Q;
     }
 
-    Eigen::MatrixXd Z::concate(Eigen::Matrix3d Q1, Eigen::Matrix3d Q2, Eigen::Matrix3d Q3, Eigen::Matrix3d Q4) {
-        Eigen::MatrixXd Q_ = Eigen::MatrixXd::Zero(12, 12);
+    Eigen::MatrixXd Z::concate(Eigen::Matrix3d Q1, Eigen::Matrix3d Q2, Eigen::Matrix3d Q3, Eigen::Matrix3d Q4, Eigen::Matrix3d Q5) {
+        Eigen::MatrixXd Q_ = Eigen::MatrixXd::Zero(12 + 6 * (n - 2), 12 + 6 * (n - 2));
         Q_.block<3, 3>(0, 0) = Q1 ;
         Q_.block<3, 3>(3, 3) = Q2 ;
         Q_.block<3, 3>(6, 6) = Q3 ;
         Q_.block<3, 3>(9, 9) = Q4 ;
+        for (int i = 12; i < 6 * (n - 2); i+=3) {
+            Q_.block<3, 3> (i, i) = Q5;
+        }
         return Q_;
     }
 
@@ -130,6 +162,7 @@ namespace estimation_model {
         Eigen::Vector3d first_point = std::get<3>(first) * leg.contact_point;
         return t + first_point - last_point + c;
     }
+
     void Z::push_data(Eigen::Vector<double, 5> encoders, Eigen::Matrix3d Rk, double dt, double alpha) {
         trajectory last = trajectories.back();
         double contact_beta = (encoders(2) + encoders(3)) * dt + std::get<2>(last);

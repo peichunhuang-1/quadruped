@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
     std::string filename = "data/data" + filenumber;
     DataProcessor::DataFrame df =  DataProcessor::read_csv(filename+".csv");
     int n = df.row;
-    int j = 10;
+    const int j = 10;
     double dt = 0.001;
     Leg lf_leg(Eigen::Vector3d(0.2, 0.15, 0), 0.1, 0.01);
     Leg rf_leg(Eigen::Vector3d(0.2, -0.15, 0), 0.1, 0.01);
@@ -87,8 +87,8 @@ int main(int argc, char* argv[]) {
         Eigen::MatrixXd Q;
         P.push_back(Eigen::Vector3d(df.iloc("C.x", i), df.iloc("C.y", i), df.iloc("C.z", i)));
         P.pop_front();
-        z.resize(12);
-        Q.resize(12, 12);
+        z.resize(12 + 6 * j - 6);
+        Q.resize(12 + 6 * j - 6, 12 + 6 * j - 6);
         Eigen::Matrix3d R = q.toRotationMatrix();
         std::vector<bool> contact_metrice = {true, true, true, true};
         contacts.push_back(std::tuple<bool, bool, bool, bool> {df.iloc("lf.contact", i), df.iloc("rf.contact", i), df.iloc("rh.contact", i), df.iloc("lh.contact", i)});
@@ -96,6 +96,8 @@ int main(int argc, char* argv[]) {
 
         input.push_data(a, R_k2);
         A = input.StateMatrix(dt);
+        
+        filter.C.block<6 * (j - 1), 6 * j>(12, 0) = input.ObservationMatrix(dt);
         double alpha;
         if (counter % 4) alpha = -100;
         else alpha = 0;
@@ -108,13 +110,16 @@ int main(int argc, char* argv[]) {
         z.segment(3, 3) = observed_rf.z(rf_leg, dt);
         z.segment(6, 3) = observed_rh.z(rh_leg, dt);
         z.segment(9, 3) = observed_lh.z(lh_leg, dt);
-
+        z.segment(12, 6 * j - 6) = input.ObservationVector(dt);
+        
         z = z - input.compensate(dt);
+        
 
         filter.A = A;
         filter.predict(input.u(dt), input.noise());
-
-        Q = observed_lf.concate(observed_lf.noise(), observed_rf.noise(), observed_rh.noise(), observed_lh.noise());
+        Eigen::Matrix3d Q5 = 1e-10 * Eigen::Matrix3d::Identity();
+        Q = observed_lf.concate(observed_lf.noise(), observed_rf.noise(), observed_rh.noise(), observed_lh.noise(), Q5);
+        
         double min_malahanobis_distance = 1e10;
         int best_observation = 0;
         std::vector<int> kick_out_list;
@@ -133,8 +138,10 @@ int main(int argc, char* argv[]) {
             contact_metrice[iter] = false;
             Q.block<3, 3> (iter * 3, iter * 3) = 1e100 * Eigen::Matrix3d::Identity();
         }
+        
 
         filter.valid(z, Q);
+        
         x = filter.state();
         estimate_state.row(i).segment(0, 3) = x.segment(3 * j - 3, 3);
         estimate_state.row(i).segment(3, 3) = v;
